@@ -1,0 +1,39 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+
+import type { Container } from '@/di/container';
+import { ContainerProvider } from '@/di/ContainerProvider';
+import type { City } from '@/domain/entities/city';
+
+export const joinville: City = {
+  id: 3459712,
+  name: 'Joinville',
+  admin1: 'Santa Catarina',
+  country: 'Brasil',
+  latitude: -26.30444,
+  longitude: -48.84556,
+  timezone: 'America/Sao_Paulo',
+};
+
+export function createFakeContainer(overrides: Partial<Container> = {}): Container {
+  return {
+    searchCity: async () => [joinville],
+    getTodayForecast: async () => [],
+    ...overrides,
+  };
+}
+
+/** Wrapper de teste: container fake + React Query sem retry. */
+export function createProvidersWrapper(container: Container) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return function Providers({ children }: { children: ReactNode }) {
+    return (
+      <ContainerProvider container={container}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </ContainerProvider>
+    );
+  };
+}
