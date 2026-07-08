@@ -17,13 +17,45 @@ export const strings = {
     retry: 'Tentar novamente',
   },
   city: {
-    stubHint: 'A recomendação do melhor horário chega aqui em breve.',
     fallbackTitle: 'Cidade',
+    backLabel: 'Voltar para a busca',
+    missingCity: 'Não encontramos essa cidade por aqui. Volte e busque de novo.',
+  },
+  recommendation: {
+    heroLabel: 'Melhor horário para sair hoje',
+    dayOverTitle: 'O dia já está acabando por aí.',
+    dayOverHint: 'Amanhã tem mais!',
+    caveat: (reason: string) =>
+      `Hoje não está ideal. Se precisar sair, o horário menos ruim é este — ${reason}.`,
+    badge: {
+      otimo: 'Ótimo',
+      bom: 'Bom',
+      razoavel: 'Razoável',
+      ruim: 'Ruim',
+    },
+    timelineTitle: 'Restante do dia',
+    detailsTitle: 'Na janela recomendada',
+    details: {
+      apparentTemp: 'Sensação',
+      precipitationProb: 'Chuva',
+      wind: 'Vento',
+      uv: 'UV',
+    },
+    timeline: {
+      now: 'agora',
+      night: 'noite',
+      noData: 'sem dados',
+      hourA11y: (hour: string, temp: string, scoreLabel: string) =>
+        `${hour}, ${temp} graus, score ${scoreLabel}`,
+      nightA11y: (hour: string) => `${hour}, noite`,
+      noDataA11y: (hour: string) => `${hour}, sem dados`,
+    },
   },
   errors: {
     network: 'Sem conexão com a internet. Verifique sua rede e tente de novo.',
     api: 'O serviço de clima está indisponível agora. Tente de novo em instantes.',
     noResults: 'Nada encontrado por aqui.',
+    forecastNoData: 'A previsão veio sem dados utilizáveis para hoje. Tente novamente.',
     generic: 'Algo deu errado. Tente novamente.',
   },
 } as const;
