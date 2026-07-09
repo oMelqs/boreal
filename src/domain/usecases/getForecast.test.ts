@@ -17,7 +17,7 @@ describe('getForecast', () => {
     const hour = buildHour();
     const cities: City[] = [];
     const repository: WeatherRepository = {
-      getTodayHourlyForecast: async (requested) => {
+      getHourlyForecast: async (requested) => {
         cities.push(requested);
         return [hour];
       },

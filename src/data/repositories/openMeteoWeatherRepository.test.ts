@@ -2,7 +2,7 @@ import type { City } from '@/domain/entities/city';
 
 import type { ForecastRequest, OpenMeteoClient } from '../datasources/openMeteoClient';
 import { NoResultsError } from '../errors';
-import forecastJoinville from '../mappers/fixtures/forecastJoinville.json';
+import forecastJoinville2d from '../mappers/fixtures/forecastJoinville2d.json';
 import { createWeatherRepository } from './openMeteoWeatherRepository';
 
 const joinville: City = {
@@ -18,7 +18,7 @@ const joinville: City = {
 function fakeClient(overrides: Partial<OpenMeteoClient> = {}): OpenMeteoClient {
   return {
     searchCities: async () => ({ results: [] }),
-    getForecast: async () => forecastJoinville,
+    getForecast: async () => forecastJoinville2d,
     ...overrides,
   };
 }
@@ -30,17 +30,17 @@ describe('openMeteoWeatherRepository', () => {
       fakeClient({
         getForecast: async (request) => {
           requests.push(request);
-          return forecastJoinville;
+          return forecastJoinville2d;
         },
       }),
     );
 
-    const hours = await repository.getTodayHourlyForecast(joinville);
+    const hours = await repository.getHourlyForecast(joinville);
 
     expect(requests).toEqual([
       { latitude: -26.30444, longitude: -48.84556, timezone: 'America/Sao_Paulo' },
     ]);
-    expect(hours).toHaveLength(24);
+    expect(hours).toHaveLength(48);
     expect(hours[12].isDay).toBe(true);
   });
 
@@ -64,7 +64,7 @@ describe('openMeteoWeatherRepository', () => {
       }),
     );
 
-    await expect(repository.getTodayHourlyForecast(joinville)).rejects.toBeInstanceOf(
+    await expect(repository.getHourlyForecast(joinville)).rejects.toBeInstanceOf(
       NoResultsError,
     );
   });

@@ -73,7 +73,8 @@ export function createOpenMeteoClient(fetchFn: typeof fetch = fetch): OpenMeteoC
         latitude: String(latitude),
         longitude: String(longitude),
         hourly: HOURLY_VARIABLES,
-        forecast_days: '1',
+        // Hoje + amanhã (§7 dos hábitos): próxima ocorrência quando já passou.
+        forecast_days: '2',
         timezone,
       });
       return getJson<ForecastResponseDto>(`${FORECAST_BASE_URL}?${params}`);

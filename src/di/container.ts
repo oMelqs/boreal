@@ -9,7 +9,7 @@ import { searchCity } from '@/domain/usecases/searchCity';
 /** Use cases prontos para consumo pelos hooks da presentation. */
 export type Container = {
   searchCity(query: string): Promise<City[]>;
-  getTodayForecast(city: City): Promise<HourlyForecast[]>;
+  getForecast(city: City): Promise<HourlyForecast[]>;
 };
 
 /**
@@ -24,7 +24,7 @@ export function createContainer(fetchFn: typeof fetch = fetch): Container {
 
   return {
     searchCity: (query) => searchCity(cityRepository, query),
-    getTodayForecast: (city) => getForecast(weatherRepository, city),
+    getForecast: (city) => getForecast(weatherRepository, city),
   };
 }
 

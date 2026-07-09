@@ -54,7 +54,7 @@ describe('openMeteoClient', () => {
         longitude: '-48.84',
         hourly:
           'temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,uv_index,weather_code,is_day',
-        forecast_days: '1',
+        forecast_days: '2',
         timezone: 'America/Sao_Paulo',
       });
     });

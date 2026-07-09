@@ -39,7 +39,7 @@ function rainyDay() {
 }
 
 async function renderCityScreen(
-  container: Container = createFakeContainer({ getTodayForecast: async () => goodDay() }),
+  container: Container = createFakeContainer({ getForecast: async () => goodDay() }),
   now = atHour(16),
 ) {
   const Wrapper = createProvidersWrapper(container);
@@ -70,7 +70,7 @@ describe('CityScreen', () => {
 
   it('dia ruim mantém a recomendação com caveat honesto', async () => {
     await renderCityScreen(
-      createFakeContainer({ getTodayForecast: async () => rainyDay() }),
+      createFakeContainer({ getForecast: async () => rainyDay() }),
       atHour(10),
     );
 
@@ -91,11 +91,11 @@ describe('CityScreen', () => {
 
   it('erro de rede mostra mensagem pt-BR e retry recupera a tela', async () => {
     let shouldFail = true;
-    const getTodayForecast = jest.fn(async () => {
+    const getForecast = jest.fn(async () => {
       if (shouldFail) throw new NetworkError();
       return goodDay();
     });
-    await renderCityScreen(createFakeContainer({ getTodayForecast }));
+    await renderCityScreen(createFakeContainer({ getForecast }));
 
     expect(await screen.findByText(strings.errors.network)).toBeOnTheScreen();
 
@@ -103,7 +103,7 @@ describe('CityScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: strings.search.retry }));
 
     expect(await screen.findByText('17h–19h')).toBeOnTheScreen();
-    expect(getTodayForecast).toHaveBeenCalledTimes(2);
+    expect(getForecast).toHaveBeenCalledTimes(2);
   });
 
   it('sem cidade selecionada orienta a voltar para a busca', async () => {
