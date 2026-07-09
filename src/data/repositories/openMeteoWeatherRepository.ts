@@ -5,12 +5,12 @@ import { NoResultsError } from '../errors';
 import { mapForecastResponseToHourlyForecasts } from '../mappers/forecastMapper';
 
 /**
- * Implementa o port de previsão com o forecast da Open-Meteo: um dia
- * (`forecast_days=1`) no timezone da cidade consultada.
+ * Implementa o port de previsão com o forecast da Open-Meteo: hoje e amanhã
+ * (`forecast_days=2`) no timezone da cidade consultada.
  */
 export function createWeatherRepository(client: OpenMeteoClient): WeatherRepository {
   return {
-    async getTodayHourlyForecast(city) {
+    async getHourlyForecast(city) {
       const response = await client.getForecast({
         latitude: city.latitude,
         longitude: city.longitude,

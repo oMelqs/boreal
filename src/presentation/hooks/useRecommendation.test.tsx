@@ -28,7 +28,7 @@ function goodDay() {
 }
 
 async function renderRecommendation(
-  container = createFakeContainer({ getTodayForecast: async () => goodDay() }),
+  container = createFakeContainer({ getForecast: async () => goodDay() }),
   now = atHour(16),
 ) {
   return renderHook(() => useRecommendation(joinville, { now }), {
@@ -40,7 +40,7 @@ describe('useRecommendation', () => {
   it('começa em loading (skeleton do primeiro load)', async () => {
     // Promise pendente: garante o estado inicial sem corrida com o fetch
     const { result } = await renderRecommendation(
-      createFakeContainer({ getTodayForecast: () => new Promise(() => {}) }),
+      createFakeContainer({ getForecast: () => new Promise(() => {}) }),
     );
 
     expect(result.current.status).toBe('loading');
@@ -73,7 +73,7 @@ describe('useRecommendation', () => {
   it('hora sem dados vira score null na timeline', async () => {
     const hours = buildDay(16, 3, { 17: { apparentTemp: null } });
     const { result } = await renderRecommendation(
-      createFakeContainer({ getTodayForecast: async () => hours }),
+      createFakeContainer({ getForecast: async () => hours }),
     );
     await waitFor(() => expect(result.current.status).toBe('success'));
     const vm = result.current;
@@ -92,13 +92,28 @@ describe('useRecommendation', () => {
     expect(vm.windowDetails).toBeNull();
   });
 
+  it('regressão da cerca: com 48h no cache, a noite continua day-over e a timeline é só de hoje', async () => {
+    // hoje 6h–19h de dia + amanhã inteiro perfeito no mesmo payload
+    const twoDays = [...goodDay(), ...buildDay(24, 24)];
+    const { result } = await renderRecommendation(
+      createFakeContainer({ getForecast: async () => twoDays }),
+      atHour(21),
+    );
+    await waitFor(() => expect(result.current.status).toBe('success'));
+    const vm = result.current;
+    if (vm.status !== 'success') throw new Error('esperava sucesso');
+
+    expect(vm.recommendation).toEqual({ kind: 'day-over' }); // nunca janela de amanhã
+    expect(vm.timeline.every((hour) => hour.time.getUTCDate() === 8)).toBe(true);
+  });
+
   it('erro de rede vira mensagem pt-BR com retry funcional', async () => {
     let shouldFail = true;
-    const getTodayForecast = jest.fn(async () => {
+    const getForecast = jest.fn(async () => {
       if (shouldFail) throw new NetworkError();
       return goodDay();
     });
-    const { result } = await renderRecommendation(createFakeContainer({ getTodayForecast }));
+    const { result } = await renderRecommendation(createFakeContainer({ getForecast }));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     const vm = result.current;
@@ -109,6 +124,6 @@ describe('useRecommendation', () => {
     await act(async () => vm.retry());
 
     await waitFor(() => expect(result.current.status).toBe('success'));
-    expect(getTodayForecast).toHaveBeenCalledTimes(2);
+    expect(getForecast).toHaveBeenCalledTimes(2);
   });
 });

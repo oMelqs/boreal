@@ -18,7 +18,7 @@ export const joinville: City = {
 export function createFakeContainer(overrides: Partial<Container> = {}): Container {
   return {
     searchCity: async () => [joinville],
-    getTodayForecast: async () => [],
+    getForecast: async () => [],
     ...overrides,
   };
 }

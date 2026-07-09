@@ -7,6 +7,7 @@ import type { ComfortScore } from '@/domain/entities/comfortScore';
 import type { HourlyForecast } from '@/domain/entities/hourlyForecast';
 import type { Recommendation } from '@/domain/entities/recommendation';
 import { computeComfortScore } from '@/domain/usecases/computeComfortScore';
+import { splitByLocalDay } from '@/domain/usecases/localDay';
 import { recommendBestWindow } from '@/domain/usecases/recommendBestWindow';
 import { mapErrorToMessage } from '@/presentation/i18n/errorMessages';
 
@@ -116,7 +117,7 @@ export function useRecommendation(city: City, options: Options = {}): Recommenda
 
   const query = useQuery({
     queryKey: ['forecast', city.id],
-    queryFn: () => container.getTodayForecast(city),
+    queryFn: () => container.getForecast(city),
     staleTime: FORECAST_STALE_TIME_MS,
   });
 
@@ -132,8 +133,11 @@ export function useRecommendation(city: City, options: Options = {}): Recommenda
     };
   }
 
-  const hours = query.data;
   const now = options.now ?? nowInTimezone(city.timezone);
+  // Cerca do dia local: o forecast agora traz 2 dias (hábitos), mas esta
+  // tela é sobre HOJE — sem o recorte, o motor genérico recomendaria amanhã
+  // de manhã em vez do guard "dia acabou" (§5.2 do SPECS original).
+  const hours = splitByLocalDay(query.data, now).today;
   const recommendation = recommendBestWindow(hours, now);
 
   return {
