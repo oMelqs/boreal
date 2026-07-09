@@ -1,14 +1,41 @@
 import { labelForScore } from '../entities/comfortScore';
 import type { HourlyForecast } from '../entities/hourlyForecast';
 import type { Recommendation } from '../entities/recommendation';
-import type { ComfortBreakdown, ComfortInputs, ComfortPenalties } from './computeComfortScore';
-import { computeComfortBreakdown } from './computeComfortScore';
+import type {
+  ComfortBreakdown,
+  ComfortInputs,
+  ComfortPenalties,
+  ComfortScoringParams,
+} from './computeComfortScore';
+import { computeComfortBreakdown, DEFAULT_COMFORT_PARAMS } from './computeComfortScore';
 
 const HOUR_MS = 60 * 60 * 1000;
 
-/** Janela recomendada tem entre 2 e 3 horas (2h em empate: mais precisa). */
-const MIN_WINDOW_HOURS = 2;
-const MAX_WINDOW_HOURS = 3;
+/**
+ * Perfil de pontuação da recomendação. O default reproduz o motor genérico;
+ * perfis por hábito ajustam faixas, pesos, tamanho de janela e restrições de
+ * horário sem duplicar o motor.
+ */
+export type ScoringProfile = ComfortScoringParams & {
+  /**
+   * Tamanho da janela em horas cheias (granularidade da API). O default
+   * {min: 2, max: 3} preserva o comportamento original: janelas de 2–3h,
+   * preferindo 2h em empate. Hábitos travam min === max.
+   */
+  windowHours: { min: number; max: number };
+  /**
+   * Restrições de horário do hábito ("HH:mm", relógio local da cidade).
+   * Hora elegível precisa começar em `earliest` ou depois e terminar até
+   * `latest` (início + 1h ≤ latest).
+   */
+  bounds?: { earliest?: string; latest?: string };
+};
+
+/** Comportamento original do app (tela de recomendação genérica). */
+export const DEFAULT_SCORING_PROFILE: ScoringProfile = {
+  ...DEFAULT_COMFORT_PARAMS,
+  windowHours: { min: 2, max: 3 },
+};
 
 /** Abaixo desta média a recomendação vem com enquadramento honesto (caveat). */
 const LOW_SCORE_THRESHOLD = 40;
@@ -49,6 +76,7 @@ type WindowCandidate = {
 export function recommendBestWindow(
   hours: readonly HourlyForecast[],
   now: Date,
+  profile: ScoringProfile = DEFAULT_SCORING_PROFILE,
 ): Recommendation {
   const currentHourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const future = [...hours]
@@ -60,23 +88,29 @@ export function recommendBestWindow(
     return { kind: 'day-over' };
   }
 
+  const bounded = daylight.filter((hour) => withinBounds(hour.time, profile.bounds));
+  if (bounded.length === 0) {
+    // Havia dia pela frente, mas as restrições do hábito não deixam janela.
+    return { kind: 'day-over' };
+  }
+
   const eligible: ScoredHour[] = [];
-  for (const hour of daylight) {
-    const breakdown = computeComfortBreakdown(hour);
+  for (const hour of bounded) {
+    const breakdown = computeComfortBreakdown(hour, profile);
     if (breakdown) eligible.push({ hour, breakdown });
   }
   if (eligible.length === 0) {
     return { kind: 'no-data' };
   }
 
-  const best = findBestWindow(eligible);
+  const best = findBestWindow(eligible, profile.windowHours);
   if (!best) {
     return { kind: 'day-over' };
   }
 
   const lastHour = best.hours[best.hours.length - 1].hour;
   const value = best.average;
-  const reasons = buildReasons(best);
+  const reasons = buildReasons(best, profile);
 
   return {
     kind: 'window',
@@ -84,8 +118,27 @@ export function recommendBestWindow(
     end: new Date(lastHour.time.getTime() + HOUR_MS),
     averageScore: { value, label: labelForScore(value) },
     reasons,
-    ...(value < LOW_SCORE_THRESHOLD ? { caveat: dominantReason(best) } : {}),
+    ...(value < LOW_SCORE_THRESHOLD ? { caveat: dominantReason(best, profile) } : {}),
   };
+}
+
+/** "HH:mm" → minutos desde a meia-noite local. */
+function parseTimeString(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** Hora elegível: começa em `earliest` ou depois e termina até `latest`. */
+function withinBounds(time: Date, bounds: ScoringProfile['bounds']): boolean {
+  if (!bounds) return true;
+  const startMinutes = time.getUTCHours() * 60 + time.getUTCMinutes();
+  if (bounds.earliest !== undefined && startMinutes < parseTimeString(bounds.earliest)) {
+    return false;
+  }
+  if (bounds.latest !== undefined && startMinutes + 60 > parseTimeString(bounds.latest)) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -94,7 +147,10 @@ export function recommendBestWindow(
  * vence (2h > 3h em precisão); persistindo, a mais cedo (quem pergunta agora
  * provavelmente quer sair logo).
  */
-function findBestWindow(eligible: ScoredHour[]): WindowCandidate | null {
+function findBestWindow(
+  eligible: ScoredHour[],
+  windowHours: ScoringProfile['windowHours'],
+): WindowCandidate | null {
   const runs: ScoredHour[][] = [];
   let currentRun: ScoredHour[] = [];
   for (const scored of eligible) {
@@ -113,7 +169,7 @@ function findBestWindow(eligible: ScoredHour[]): WindowCandidate | null {
 
   let best: WindowCandidate | null = null;
   for (const run of runs) {
-    for (let size = MIN_WINDOW_HOURS; size <= MAX_WINDOW_HOURS; size++) {
+    for (let size = windowHours.min; size <= windowHours.max; size++) {
       for (let start = 0; start + size <= run.length; start++) {
         const windowHours = run.slice(start, start + size);
         const average =
@@ -150,9 +206,13 @@ type ReasonCandidate = {
  * (≥ 8 em alguma hora da janela); temp/chuva/vento sempre têm leitura, mesmo
  * positiva ("temperatura agradável", "baixa chance de chuva"...).
  */
-function reasonCandidates(window: WindowCandidate): ReasonCandidate[] {
+function reasonCandidates(window: WindowCandidate, profile: ScoringProfile): ReasonCandidate[] {
   const candidates: ReasonCandidate[] = [
-    { factor: 'temp', penalty: averagePenalty(window, 'temp'), phrase: tempPhrase(window) },
+    {
+      factor: 'temp',
+      penalty: averagePenalty(window, 'temp'),
+      phrase: tempPhrase(window, profile),
+    },
     { factor: 'rain', penalty: averagePenalty(window, 'rain'), phrase: rainPhrase(window) },
     { factor: 'wind', penalty: averagePenalty(window, 'wind'), phrase: windPhrase(window) },
   ];
@@ -170,15 +230,15 @@ function reasonCandidates(window: WindowCandidate): ReasonCandidate[] {
 }
 
 /** Frase explicativa por regras: no máximo 3 fatores, por influência no score. */
-function buildReasons(window: WindowCandidate): string[] {
-  return reasonCandidates(window)
+function buildReasons(window: WindowCandidate, profile: ScoringProfile): string[] {
+  return reasonCandidates(window, profile)
     .slice(0, MAX_REASONS)
     .map((candidate) => candidate.phrase);
 }
 
 /** Motivo dominante da janela (maior penalidade média) para o caveat. */
-function dominantReason(window: WindowCandidate): string {
-  return reasonCandidates(window)[0].phrase;
+function dominantReason(window: WindowCandidate, profile: ScoringProfile): string {
+  return reasonCandidates(window, profile)[0].phrase;
 }
 
 function averagePenalty(window: WindowCandidate, factor: Factor): number {
@@ -197,10 +257,12 @@ function averageInput(
   );
 }
 
-function tempPhrase(window: WindowCandidate): string {
+/** "Agradável" é relativo ao perfil: a faixa ideal da atividade. */
+function tempPhrase(window: WindowCandidate, profile: ScoringProfile): string {
+  const [idealMin, idealMax] = profile.idealTempRange;
   const avg = Math.round(averageInput(window, (inputs) => inputs.apparentTemp));
-  if (avg > 26) return `calor de ${avg} °C`;
-  if (avg < 18) return `frio de ${avg} °C`;
+  if (avg > idealMax) return `calor de ${avg} °C`;
+  if (avg < idealMin) return `frio de ${avg} °C`;
   return `temperatura agradável (${avg} °C)`;
 }
 
