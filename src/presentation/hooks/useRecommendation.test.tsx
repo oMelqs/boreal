@@ -38,7 +38,10 @@ async function renderRecommendation(
 
 describe('useRecommendation', () => {
   it('começa em loading (skeleton do primeiro load)', async () => {
-    const { result } = await renderRecommendation();
+    // Promise pendente: garante o estado inicial sem corrida com o fetch
+    const { result } = await renderRecommendation(
+      createFakeContainer({ getTodayForecast: () => new Promise(() => {}) }),
+    );
 
     expect(result.current.status).toBe('loading');
   });
