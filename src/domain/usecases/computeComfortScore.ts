@@ -2,6 +2,30 @@ import type { ComfortScore } from '../entities/comfortScore';
 import { labelForScore } from '../entities/comfortScore';
 import type { HourlyForecast } from '../entities/hourlyForecast';
 
+/**
+ * Parâmetros de pontuação sensíveis à atividade. O default reproduz o motor
+ * genérico do app; perfis por hábito (passeio, corrida…) ajustam faixas e
+ * pesos sem duplicar o motor.
+ */
+export type ComfortScoringParams = {
+  /** Faixa de sensação térmica sem penalidade, em °C. */
+  idealTempRange: [number, number];
+  /** Pontos de penalidade por °C fora da faixa ideal. */
+  tempPenaltyPerDegree: number;
+  /** 'alto' dobra as penalidades de UV (atividades de exposição prolongada). */
+  uvWeight: 'normal' | 'alto';
+  /** Velocidade de vento (km/h) onde a penalidade começa. */
+  windToleranceKmh: number;
+};
+
+/** Comportamento original do app: faixa 18–26 °C, 4 pts/°C, UV normal, vento livre até 15. */
+export const DEFAULT_COMFORT_PARAMS: ComfortScoringParams = {
+  idealTempRange: [18, 26],
+  tempPenaltyPerDegree: 4,
+  uvWeight: 'normal',
+  windToleranceKmh: 15,
+};
+
 /** Penalidade aplicada por cada fator, em pontos do score (0–100). */
 export type ComfortPenalties = {
   temp: number;
@@ -25,11 +49,7 @@ export type ComfortBreakdown = {
   inputs: ComfortInputs;
 };
 
-/** Faixa de sensação térmica considerada ideal para atividade ao ar livre. */
-const IDEAL_TEMP_MIN_C = 18;
-const IDEAL_TEMP_MAX_C = 26;
-/** Fora da faixa ideal, cada °C de desvio custa 4 pontos, até o teto de 50. */
-const TEMP_PENALTY_PER_DEGREE = 4;
+/** Teto da penalidade de temperatura. */
 const TEMP_PENALTY_CAP = 50;
 
 /** Cada ponto percentual de chance de chuva custa 0,6 (70% ≈ −42). */
@@ -38,10 +58,9 @@ const RAIN_PROB_WEIGHT = 0.6;
 const EFFECTIVE_RAIN_THRESHOLD_MM = 0.5;
 const EFFECTIVE_RAIN_PENALTY = 25;
 
-/** Vento até 15 km/h é livre; 15–30 penaliza linearmente até −15. */
-const WIND_FREE_LIMIT_KMH = 15;
-const WIND_MODERATE_LIMIT_KMH = 30;
-/** Acima de 30 km/h, cada km/h extra custa 1,5 ponto, até o teto de 35. */
+/** Largura da banda linear de vento (tolerância → tolerância + 15 = até −15). */
+const WIND_LINEAR_BAND_KMH = 15;
+/** Acima da banda linear, cada km/h extra custa 1,5 ponto, até o teto de 35. */
 const WIND_STRONG_PENALTY_PER_KMH = 1.5;
 const WIND_PENALTY_CAP = 35;
 
@@ -49,14 +68,15 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function tempPenalty(apparentTemp: number): number {
+function tempPenalty(apparentTemp: number, params: ComfortScoringParams): number {
+  const [idealMin, idealMax] = params.idealTempRange;
   const deviation =
-    apparentTemp > IDEAL_TEMP_MAX_C
-      ? apparentTemp - IDEAL_TEMP_MAX_C
-      : apparentTemp < IDEAL_TEMP_MIN_C
-        ? IDEAL_TEMP_MIN_C - apparentTemp
+    apparentTemp > idealMax
+      ? apparentTemp - idealMax
+      : apparentTemp < idealMin
+        ? idealMin - apparentTemp
         : 0;
-  return Math.min(TEMP_PENALTY_CAP, deviation * TEMP_PENALTY_PER_DEGREE);
+  return Math.min(TEMP_PENALTY_CAP, deviation * params.tempPenaltyPerDegree);
 }
 
 function rainPenalty(precipitationProb: number, precipitationMm: number): number {
@@ -66,24 +86,24 @@ function rainPenalty(precipitationProb: number, precipitationMm: number): number
   return probPenalty + effectiveRainPenalty;
 }
 
-function windPenalty(windSpeed: number): number {
-  if (windSpeed <= WIND_FREE_LIMIT_KMH) return 0;
-  if (windSpeed <= WIND_MODERATE_LIMIT_KMH) return windSpeed - WIND_FREE_LIMIT_KMH;
-  const basePenalty = WIND_MODERATE_LIMIT_KMH - WIND_FREE_LIMIT_KMH;
-  const extra = (windSpeed - WIND_MODERATE_LIMIT_KMH) * WIND_STRONG_PENALTY_PER_KMH;
-  return Math.min(WIND_PENALTY_CAP, basePenalty + extra);
+function windPenalty(windSpeed: number, params: ComfortScoringParams): number {
+  const freeLimit = params.windToleranceKmh;
+  const linearLimit = freeLimit + WIND_LINEAR_BAND_KMH;
+  if (windSpeed <= freeLimit) return 0;
+  if (windSpeed <= linearLimit) return windSpeed - freeLimit;
+  const extra = (windSpeed - linearLimit) * WIND_STRONG_PENALTY_PER_KMH;
+  return Math.min(WIND_PENALTY_CAP, WIND_LINEAR_BAND_KMH + extra);
 }
 
 /**
  * UV por faixas contínuas: ≤ 5 → 0, < 8 → −5, < 11 → −12, ≥ 11 → −20.
  * O SPECS define faixas inteiras (6–7, 8–10); como o índice UV da API é
  * contínuo, valores no intervalo (5, 6) caem na faixa de −5.
+ * `uvWeight: 'alto'` dobra a penalidade (exposição prolongada ao sol).
  */
-function uvPenalty(uvIndex: number): number {
-  if (uvIndex <= 5) return 0;
-  if (uvIndex < 8) return 5;
-  if (uvIndex < 11) return 12;
-  return 20;
+function uvPenalty(uvIndex: number, params: ComfortScoringParams): number {
+  const base = uvIndex <= 5 ? 0 : uvIndex < 8 ? 5 : uvIndex < 11 ? 12 : 20;
+  return params.uvWeight === 'alto' ? base * 2 : base;
 }
 
 /**
@@ -93,7 +113,10 @@ function uvPenalty(uvIndex: number): number {
  * Retorna `null` quando qualquer campo usado no cálculo está faltando
  * (`null` da API) — a hora é inelegível para recomendação.
  */
-export function computeComfortBreakdown(hour: HourlyForecast): ComfortBreakdown | null {
+export function computeComfortBreakdown(
+  hour: HourlyForecast,
+  params: ComfortScoringParams = DEFAULT_COMFORT_PARAMS,
+): ComfortBreakdown | null {
   const { apparentTemp, precipitationProb, precipitationMm, windSpeed, uvIndex } = hour;
   if (
     apparentTemp === null ||
@@ -106,10 +129,10 @@ export function computeComfortBreakdown(hour: HourlyForecast): ComfortBreakdown 
   }
 
   const penalties: ComfortPenalties = {
-    temp: tempPenalty(apparentTemp),
+    temp: tempPenalty(apparentTemp, params),
     rain: rainPenalty(precipitationProb, precipitationMm),
-    wind: windPenalty(windSpeed),
-    uv: uvPenalty(uvIndex),
+    wind: windPenalty(windSpeed, params),
+    uv: uvPenalty(uvIndex, params),
   };
 
   const total = penalties.temp + penalties.rain + penalties.wind + penalties.uv;
@@ -123,6 +146,9 @@ export function computeComfortBreakdown(hour: HourlyForecast): ComfortBreakdown 
 }
 
 /** Atalho quando só o score interessa (ex.: células da timeline). */
-export function computeComfortScore(hour: HourlyForecast): ComfortScore | null {
-  return computeComfortBreakdown(hour)?.score ?? null;
+export function computeComfortScore(
+  hour: HourlyForecast,
+  params: ComfortScoringParams = DEFAULT_COMFORT_PARAMS,
+): ComfortScore | null {
+  return computeComfortBreakdown(hour, params)?.score ?? null;
 }
