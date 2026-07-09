@@ -14,8 +14,9 @@ import {
 import { CityScreen } from './CityScreen';
 
 const mockBack = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, replace: mockReplace, canGoBack: () => true }),
 }));
 
 function goodDay() {

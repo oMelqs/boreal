@@ -54,6 +54,10 @@ export function RecommendationHero({ recommendation }: RecommendationHeroProps) 
       </Text>
       <Text
         accessibilityRole="header"
+        accessibilityLabel={strings.recommendation.windowA11y(
+          recommendation.start.getUTCHours(),
+          recommendation.end.getUTCHours(),
+        )}
         style={[styles.window, { color: colors.textPrimary }]}
       >
         {formatWindow(recommendation.start, recommendation.end)}

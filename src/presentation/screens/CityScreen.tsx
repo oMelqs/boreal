@@ -1,5 +1,15 @@
 import { useRouter } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { City } from '@/domain/entities/city';
@@ -29,8 +39,20 @@ export function CityScreen({ nowOverride }: CityScreenProps) {
   return <CityContent city={city} nowOverride={nowOverride} />;
 }
 
-function MissingCity() {
+/** back() quebra em deep link/reload sem histórico: cai para a Home. */
+function useGoBack() {
   const router = useRouter();
+  return () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
+  };
+}
+
+function MissingCity() {
+  const goBack = useGoBack();
   const { colors, spacing, typography } = useTheme();
 
   return (
@@ -39,7 +61,7 @@ function MissingCity() {
         <Text style={[typography.body, styles.centered, { color: colors.textPrimary }]}>
           {strings.city.missingCity}
         </Text>
-        <BackButton onPress={() => router.back()} />
+        <BackButton onPress={goBack} />
       </View>
     </SafeAreaView>
   );
@@ -64,9 +86,24 @@ function BackButton({ onPress }: { onPress: () => void }) {
 }
 
 function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) {
-  const router = useRouter();
+  const goBack = useGoBack();
   const { colors, spacing, typography } = useTheme();
   const vm = useRecommendation(city, nowOverride ? { now: nowOverride } : {});
+
+  const [entry] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (vm.status === 'success') {
+      Animated.timing(entry, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start();
+    }
+  }, [vm.status, entry]);
+  const entryStyle = {
+    opacity: entry,
+    transform: [{ translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -83,7 +120,7 @@ function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) 
         }
       >
         <View style={[styles.header, { gap: spacing.md }]}>
-          <BackButton onPress={() => router.back()} />
+          <BackButton onPress={goBack} />
           <View style={[styles.headerTexts, { gap: spacing.xs }]}>
             <Text style={[typography.title, { color: colors.textPrimary }]}>{city.name}</Text>
             <Text style={[typography.caption, { color: colors.textSecondary }]}>
@@ -94,7 +131,12 @@ function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) 
         <AuroraStrip />
 
         {vm.status === 'loading' && (
-          <View style={{ gap: spacing.xl }}>
+          <View
+            accessible
+            accessibilityLabel={strings.recommendation.loadingForecast}
+            accessibilityLiveRegion="polite"
+            style={{ gap: spacing.xl }}
+          >
             <Skeleton height={148} />
             <Skeleton height={120} />
             <Skeleton height={148} />
@@ -107,7 +149,7 @@ function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) 
           (vm.recommendation.kind === 'no-data' ? (
             <ErrorState message={strings.errors.forecastNoData} onRetry={vm.refresh} />
           ) : (
-            <>
+            <Animated.View style={[{ gap: spacing.xl }, entryStyle]}>
               <RecommendationHero recommendation={vm.recommendation} />
               {vm.timeline.length > 0 && (
                 <View style={{ gap: spacing.sm }}>
@@ -129,7 +171,7 @@ function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) 
                   <WindowDetails details={vm.windowDetails} />
                 </View>
               )}
-            </>
+            </Animated.View>
           ))}
       </ScrollView>
     </SafeAreaView>

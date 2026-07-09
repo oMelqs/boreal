@@ -26,7 +26,8 @@ export function createFakeContainer(overrides: Partial<Container> = {}): Contain
 /** Wrapper de teste: container fake + React Query sem retry. */
 export function createProvidersWrapper(container: Container) {
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    // gcTime Infinity: sem timers de GC pendurados derrubando o worker do Jest
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
   });
 
   return function Providers({ children }: { children: ReactNode }) {

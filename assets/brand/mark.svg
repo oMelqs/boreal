@@ -1,0 +1,17 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Só a marca (transparente): adaptive foreground / splash. Safe zone central. -->
+  <defs>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="22" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g transform="rotate(-18 512 512)" filter="url(#glow)">
+    <rect x="272" y="404" width="440" height="56" rx="28" fill="#3DDC97"/>
+    <rect x="348" y="490" width="332" height="56" rx="28" fill="#53C7E8" opacity="0.95"/>
+    <rect x="424" y="576" width="232" height="56" rx="28" fill="#8B7CF6" opacity="0.9"/>
+  </g>
+</svg>

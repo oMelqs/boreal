@@ -30,7 +30,7 @@ type HomeScreenProps = {
 
 export function HomeScreen({ searchDebounceMs }: HomeScreenProps) {
   const router = useRouter();
-  const { colors, spacing, typography, minTouchTarget } = useTheme();
+  const { colors, spacing, typography, minTouchTarget, scheme } = useTheme();
   const search = useCitySearch(searchDebounceMs);
   const recentCities = useCityStore((state) => state.recentCities);
   const selectCity = useCityStore((state) => state.selectCity);
@@ -89,7 +89,10 @@ export function HomeScreen({ searchDebounceMs }: HomeScreenProps) {
                   accessibilityRole="button"
                   accessibilityLabel={strings.search.clearRecentsLabel}
                   onPress={clearRecents}
-                  style={[styles.clearButton, { minHeight: minTouchTarget }]}
+                  style={[
+                    styles.clearButton,
+                    { minHeight: minTouchTarget, minWidth: minTouchTarget },
+                  ]}
                 >
                   <Text style={[typography.label, { color: colors.accent }]}>
                     {strings.search.clearRecents}
@@ -98,6 +101,7 @@ export function HomeScreen({ searchDebounceMs }: HomeScreenProps) {
               </View>
               <FlatList
                 data={recentCities}
+                extraData={scheme}
                 keyExtractor={(city) => String(city.id)}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => <CityListItem city={item} onPress={openCity} />}
@@ -112,15 +116,25 @@ export function HomeScreen({ searchDebounceMs }: HomeScreenProps) {
           ))}
 
         {search.status === 'loading' && (
-          <View style={[styles.loading, { paddingVertical: spacing.xxl }]}>
-            <ActivityIndicator color={colors.accent} />
+          <View
+            accessibilityLiveRegion="polite"
+            style={[styles.loading, { paddingVertical: spacing.xxl }]}
+          >
+            <ActivityIndicator
+              accessibilityLabel={strings.search.loading}
+              color={colors.accent}
+            />
           </View>
         )}
 
         {search.status === 'success' && (
-          <Animated.View style={[styles.results, { opacity: listOpacity }]}>
+          <Animated.View
+            accessibilityLiveRegion="polite"
+            style={[styles.results, { opacity: listOpacity }]}
+          >
             <FlatList
               data={search.cities}
+              extraData={scheme}
               keyExtractor={(city) => String(city.id)}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => <CityListItem city={item} onPress={openCity} />}

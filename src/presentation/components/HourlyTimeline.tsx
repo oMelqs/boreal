@@ -7,6 +7,9 @@ import { useTheme } from '@/presentation/theme/useTheme';
 import { weatherCodeIcon } from '@/presentation/weather/weatherCode';
 
 const BAR_MAX_HEIGHT = 36;
+/** Largura fixa da célula: pré-requisito do getItemLayout/initialScrollIndex. */
+const CELL_WIDTH = 76;
+const CELL_GAP = 8;
 
 function hourA11yLabel(hour: TimelineHour): string {
   const time = formatHour(hour.time);
@@ -74,15 +77,27 @@ function HourCell({ hour }: { hour: TimelineHour }) {
   );
 }
 
-/** Bloco 2 (§6.2): contexto visual da recomendação, hora a hora. */
+/**
+ * Bloco 2 (§6.2): contexto visual da recomendação, hora a hora. Abre já
+ * posicionada na janela recomendada (uma célula antes, para dar contexto).
+ */
 export function HourlyTimeline({ hours }: { hours: TimelineHour[] }) {
-  const { spacing } = useTheme();
+  const { spacing, scheme } = useTheme();
+  const windowIndex = hours.findIndex((hour) => hour.inWindow);
+  const initialIndex = windowIndex > 0 ? windowIndex - 1 : 0;
 
   return (
     <FlatList
-      contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
+      contentContainerStyle={{ gap: CELL_GAP, paddingVertical: spacing.xs }}
       data={hours}
+      extraData={scheme}
+      getItemLayout={(_data, index) => ({
+        length: CELL_WIDTH,
+        offset: (CELL_WIDTH + CELL_GAP) * index,
+        index,
+      })}
       horizontal
+      initialScrollIndex={initialIndex}
       keyExtractor={(hour) => hour.time.toISOString()}
       renderItem={({ item }) => <HourCell hour={item} />}
       showsHorizontalScrollIndicator={false}
@@ -98,7 +113,7 @@ const styles = StyleSheet.create({
   cell: {
     alignItems: 'center',
     gap: 6,
-    minWidth: 72,
+    width: CELL_WIDTH,
   },
   icon: {
     fontSize: 20,
