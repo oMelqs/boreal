@@ -23,6 +23,9 @@ export const strings = {
   },
   recommendation: {
     heroLabel: 'Melhor horário para sair hoje',
+    loadingForecast: 'Carregando previsão…',
+    windowA11y: (startHour: number, endHour: number) =>
+      `melhor horário: das ${startHour} às ${endHour} horas`,
     dayOverTitle: 'O dia já está acabando por aí.',
     dayOverHint: 'Amanhã tem mais!',
     caveat: (reason: string) =>
