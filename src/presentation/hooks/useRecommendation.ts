@@ -51,7 +51,8 @@ type Options = {
   now?: Date;
 };
 
-function buildTimeline(
+/** Também usada pelos cards do painel Hoje (timeline expansível por hábito). */
+export function buildTimeline(
   hours: HourlyForecast[],
   now: Date,
   recommendation: Recommendation,
