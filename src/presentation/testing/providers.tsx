@@ -19,6 +19,11 @@ export function createFakeContainer(overrides: Partial<Container> = {}): Contain
   return {
     searchCity: async () => [joinville],
     getForecast: async () => [],
+    getHabits: async () => [],
+    saveHabit: async () => {},
+    removeHabit: async () => {},
+    getPreferences: async () => ({ defaultCity: null, onboardingDone: false }),
+    savePreferences: async () => {},
     ...overrides,
   };
 }
