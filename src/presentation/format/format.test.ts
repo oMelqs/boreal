@@ -1,4 +1,10 @@
-import { formatHour, formatReasonsSentence, formatTemp, formatWindow } from './format';
+import {
+  formatHour,
+  formatLocalDate,
+  formatReasonsSentence,
+  formatTemp,
+  formatWindow,
+} from './format';
 
 describe('format', () => {
   it('formata hora pelo relógio do frame fake UTC, não do device', () => {
@@ -17,6 +23,11 @@ describe('format', () => {
     expect(formatTemp(23.6)).toBe('24°');
     expect(formatTemp(-2.4)).toBe('-2°');
     expect(formatTemp(null)).toBe('—');
+  });
+
+  it('formata a data local em pt-BR pelo calendário fake UTC', () => {
+    expect(formatLocalDate(new Date(Date.UTC(2026, 6, 8)))).toBe('qua, 8 de julho');
+    expect(formatLocalDate(new Date(Date.UTC(2026, 0, 1)))).toBe('qui, 1 de janeiro');
   });
 
   it('monta a frase das razões com vírgulas e "e" final', () => {
