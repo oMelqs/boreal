@@ -17,9 +17,11 @@ import { OnboardingShell } from './OnboardingShell';
 
 type CityStepScreenProps = {
   searchDebounceMs?: number;
+  /** Fora do onboarding (trocar cidade da home): salva e volta. */
+  standalone?: boolean;
 };
 
-export function CityStepScreen({ searchDebounceMs }: CityStepScreenProps) {
+export function CityStepScreen({ searchDebounceMs, standalone = false }: CityStepScreenProps) {
   const router = useRouter();
   const { colors, typography, spacing, scheme } = useTheme();
   const search = useCitySearch(searchDebounceMs);
@@ -33,11 +35,23 @@ export function CityStepScreen({ searchDebounceMs }: CityStepScreenProps) {
       defaultCity: city,
       onboardingDone: preferences?.onboardingDone ?? false,
     });
-    router.push('/onboarding/habits');
+    if (standalone) {
+      router.back();
+    } else {
+      router.push('/onboarding/habits');
+    }
   }
 
   return (
-    <OnboardingShell header={<StepHeader step={1} total={3} onBack={() => router.back()} />}>
+    <OnboardingShell
+      header={
+        standalone ? (
+          <StepHeader step={1} total={1} onBack={() => router.back()} />
+        ) : (
+          <StepHeader step={1} total={3} onBack={() => router.back()} />
+        )
+      }
+    >
       <View style={{ gap: spacing.xs }}>
         <Text accessibilityRole="header" style={[typography.title, { color: colors.textPrimary }]}>
           {strings.onboarding.cityTitle}

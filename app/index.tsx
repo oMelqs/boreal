@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 
 import { usePreferences } from '@/presentation/hooks/usePreferences';
-import { HomeScreen } from '@/presentation/screens/HomeScreen';
+import { TodayScreen } from '@/presentation/screens/TodayScreen';
 
 /** Guard do primeiro acesso: sem onboarding concluído, a home é o onboarding. */
 export default function Index() {
@@ -11,5 +11,5 @@ export default function Index() {
   if (preferences && !preferences.onboardingDone) {
     return <Redirect href="/onboarding" />;
   }
-  return <HomeScreen />;
+  return <TodayScreen />;
 }
