@@ -54,16 +54,28 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
               </Text>
             ) : null}
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={strings.today.changeCity}
-            onPress={() => router.push('/city-picker')}
-            style={[styles.changeCity, { minHeight: minTouchTarget }]}
-          >
-            <Text style={[typography.label, { color: colors.accent }]}>
-              {strings.today.changeCity}
-            </Text>
-          </Pressable>
+          <View style={styles.headerLinks}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={strings.today.manageHabits}
+              onPress={() => router.push('/habits')}
+              style={[styles.changeCity, { minHeight: minTouchTarget }]}
+            >
+              <Text style={[typography.label, { color: colors.accent }]}>
+                {strings.today.manageHabits}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={strings.today.changeCity}
+              onPress={() => router.push('/city-picker')}
+              style={[styles.changeCity, { minHeight: minTouchTarget }]}
+            >
+              <Text style={[typography.label, { color: colors.accent }]}>
+                {strings.today.changeCity}
+              </Text>
+            </Pressable>
+          </View>
         </View>
         <AuroraStrip />
 
@@ -103,10 +115,7 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
               title={strings.today.emptyTitle}
               hint={strings.today.emptyHint}
             />
-            <Button
-              label={strings.today.emptyCta}
-              onPress={() => router.push('/onboarding/habits')}
-            />
+            <Button label={strings.today.emptyCta} onPress={() => router.push('/habits')} />
             <Button
               label={strings.today.searchLink}
               onPress={() => router.push('/search')}
@@ -148,6 +157,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  headerLinks: {
+    alignItems: 'flex-end',
+    gap: 2,
   },
   headerText: {
     flex: 1,

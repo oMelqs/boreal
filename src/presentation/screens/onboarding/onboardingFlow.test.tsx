@@ -122,6 +122,39 @@ describe('onboarding', () => {
     expect(useOnboarding.getState().habits).toEqual([]); // reset
   });
 
+  it('modo manage: salvar persiste direto no repository e volta para /habits', async () => {
+    const saveHabit = jest.fn(async () => {});
+    const original = { ...EMPTY_DRAFT, ...validDraft, days: [1 as const] };
+    useOnboarding.getState().beginManage({
+      id: 'persisted',
+      name: original.name,
+      category: original.category,
+      intensity: original.intensity,
+      outdoor: original.outdoor,
+      days: original.days,
+      schedule: { kind: 'flexible', durationMinutes: original.durationMinutes },
+      enabled: true,
+      createdAt: '2026-07-01T00:00:00.000Z',
+    });
+
+    await renderWith(<HabitDaysScreen />, createFakeContainer({ saveHabit }));
+    await user.press(screen.getByRole('button', { name: 'sexta-feira' }));
+    await user.press(screen.getByRole('button', { name: strings.onboarding.save }));
+
+    await waitFor(() => expect(saveHabit).toHaveBeenCalledTimes(1));
+    expect(saveHabit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'persisted',
+        createdAt: '2026-07-01T00:00:00.000Z',
+        days: [1, 5],
+      }),
+    );
+    expect(mockDismissTo).toHaveBeenCalledWith('/habits');
+    expect(useOnboarding.getState().mode).toBe('onboarding');
+    // nada foi commitado na lista local do onboarding
+    expect(useOnboarding.getState().habits).toEqual([]);
+  });
+
   it('review: remover tira o hábito da lista antes de concluir', async () => {
     useOnboarding.getState().startDraft({ ...validDraft, days: [1] });
     useOnboarding.getState().commitDraft();

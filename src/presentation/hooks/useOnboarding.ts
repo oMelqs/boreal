@@ -42,6 +42,23 @@ export const EMPTY_DRAFT: DraftHabit = {
   days: [],
 };
 
+/** Habit → campos do formulário (edição no mini-fluxo). */
+function habitToDraft(habit: Habit): DraftHabit {
+  return {
+    name: habit.name,
+    category: habit.category,
+    intensity: habit.intensity,
+    outdoor: habit.outdoor,
+    days: habit.days,
+    scheduleKind: habit.schedule.kind,
+    startTime: habit.schedule.kind === 'fixed' ? habit.schedule.startTime : '',
+    endTime: habit.schedule.kind === 'fixed' ? habit.schedule.endTime : '',
+    durationMinutes: habit.schedule.kind === 'flexible' ? habit.schedule.durationMinutes : 30,
+    earliest: habit.schedule.kind === 'flexible' ? (habit.schedule.earliest ?? '') : '',
+    latest: habit.schedule.kind === 'flexible' ? (habit.schedule.latest ?? '') : '',
+  };
+}
+
 /** Draft → Habit do domain (bounds vazios viram ausentes). */
 export function draftToHabit(draft: DraftHabit, id: string, createdAt: string): Habit {
   return {
@@ -76,6 +93,18 @@ type OnboardingState = {
   draft: DraftHabit;
   /** Id em edição (mini-fluxo reaproveitado pela revisão); null = novo. */
   editingId: string | null;
+  /** createdAt preservado ao editar um hábito já persistido (modo manage). */
+  editingCreatedAt: string | null;
+  /**
+   * 'onboarding': salvar do mini-fluxo commita na lista local (persiste só
+   * no Concluir). 'manage': salvar persiste direto via repository (tela de
+   * gerenciar hábitos reusa o mesmo mini-fluxo).
+   */
+  mode: 'onboarding' | 'manage';
+  /** Entra no modo manage: com hábito = edição, sem = novo. */
+  beginManage: (habit?: Habit) => void;
+  /** Sai do modo manage limpando o draft. */
+  finishManage: () => void;
   setCity: (city: City) => void;
   startDraft: (prefill?: Partial<DraftHabit>) => void;
   updateDraft: (patch: Partial<DraftHabit>) => void;
@@ -100,10 +129,29 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
   habits: [],
   draft: EMPTY_DRAFT,
   editingId: null,
+  editingCreatedAt: null,
+  mode: 'onboarding',
 
   setCity: (city) => set({ city }),
 
-  startDraft: (prefill = {}) => set({ draft: { ...EMPTY_DRAFT, ...prefill }, editingId: null }),
+  startDraft: (prefill = {}) =>
+    set({
+      draft: { ...EMPTY_DRAFT, ...prefill },
+      editingId: null,
+      editingCreatedAt: null,
+      mode: 'onboarding',
+    }),
+
+  beginManage: (habit) =>
+    set({
+      mode: 'manage',
+      draft: habit ? habitToDraft(habit) : EMPTY_DRAFT,
+      editingId: habit?.id ?? null,
+      editingCreatedAt: habit?.createdAt ?? null,
+    }),
+
+  finishManage: () =>
+    set({ mode: 'onboarding', draft: EMPTY_DRAFT, editingId: null, editingCreatedAt: null }),
 
   updateDraft: (patch) => set((state) => ({ draft: { ...state.draft, ...patch } })),
 
@@ -144,27 +192,19 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
   editHabit: (id) => {
     const habit = get().habits.find((existing) => existing.id === id);
     if (!habit) return;
-    set({
-      editingId: id,
-      draft: {
-        name: habit.name,
-        category: habit.category,
-        intensity: habit.intensity,
-        outdoor: habit.outdoor,
-        days: habit.days,
-        scheduleKind: habit.schedule.kind,
-        startTime: habit.schedule.kind === 'fixed' ? habit.schedule.startTime : '',
-        endTime: habit.schedule.kind === 'fixed' ? habit.schedule.endTime : '',
-        durationMinutes:
-          habit.schedule.kind === 'flexible' ? habit.schedule.durationMinutes : 30,
-        earliest: habit.schedule.kind === 'flexible' ? (habit.schedule.earliest ?? '') : '',
-        latest: habit.schedule.kind === 'flexible' ? (habit.schedule.latest ?? '') : '',
-      },
-    });
+    set({ editingId: id, draft: habitToDraft(habit), mode: 'onboarding' });
   },
 
   removeHabit: (id) =>
     set((state) => ({ habits: state.habits.filter((habit) => habit.id !== id) })),
 
-  reset: () => set({ city: null, habits: [], draft: EMPTY_DRAFT, editingId: null }),
+  reset: () =>
+    set({
+      city: null,
+      habits: [],
+      draft: EMPTY_DRAFT,
+      editingId: null,
+      editingCreatedAt: null,
+      mode: 'onboarding',
+    }),
 }));
