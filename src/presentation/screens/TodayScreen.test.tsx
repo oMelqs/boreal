@@ -130,7 +130,7 @@ describe('TodayScreen', () => {
     expect(await screen.findByText(strings.today.emptyTitle)).toBeOnTheScreen();
 
     await user.press(screen.getByRole('button', { name: strings.today.emptyCta }));
-    expect(mockPush).toHaveBeenCalledWith('/onboarding/habits');
+    expect(mockPush).toHaveBeenCalledWith('/habits');
 
     await user.press(screen.getByRole('button', { name: strings.today.searchLink }));
     expect(mockPush).toHaveBeenCalledWith('/search');
