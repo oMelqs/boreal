@@ -19,7 +19,7 @@ No primeiro acesso um onboarding em etapas cadastra a cidade padrão e os hábit
 |---|---|---|---|
 | ![Onboarding](docs/screenshots/onboarding.png) | ![Hoje](docs/screenshots/today.png) | ![Hábitos](docs/screenshots/habits.png) | ![Recomendação](docs/screenshots/recommendation.png) |
 
-Tema **noite polar** (dark) e **manhã de gelo** (light), com acento verde-aurora. Ambos os modos passam por teste de contraste AA.
+Tema **noite polar** (dark) e **manhã de gelo** (light), com acento verde-aurora. Ambos os modos passam por teste de contraste AA. Um botão sol/lua discreto no topo da home alterna entre eles, sobrepondo o esquema do sistema (a escolha é persistida).
 
 ---
 
