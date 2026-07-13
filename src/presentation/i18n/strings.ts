@@ -80,6 +80,19 @@ export const strings = {
     noCityCta: 'Escolher cidade',
     expandTimeline: 'Ver a linha do tempo do dia',
     collapseTimeline: 'Esconder a linha do tempo',
+    useMyLocation: 'Usar minha localização',
+    locationDeniedHint:
+      'Sem acesso à localização. Ative nas configurações para ver o clima de onde você está, ou escolha uma cidade.',
+    weather: {
+      cardHint: 'Ver detalhes',
+      feelsLike: (temp: string) => `sensação ${temp}`,
+      rain: (prob: number) => `${prob}% de chuva`,
+      bestWindow: (window: string) => `Melhor horário para sair: ${window}`,
+      dayOver: 'O dia já está acabando por aí.',
+      noReading: 'Sem leitura para agora.',
+      cardLabel: (city: string, description: string, temp: string) =>
+        `Clima em ${city}: ${description}, ${temp}. Toque para ver os detalhes.`,
+    },
   },
   outfit: {
     'bem-leve': { emoji: '🩳', label: 'Roupa bem leve' },

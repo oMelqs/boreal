@@ -79,8 +79,8 @@ describe('TodayScreen', () => {
   it('critério §11: faculdade com vestimenta e ressalva ida/volta; passeio com janela e porquê', async () => {
     await renderToday(readyContainer([college, dogWalk]));
 
-    // header
-    expect(await screen.findByText('Joinville')).toBeOnTheScreen();
+    // header (city.name também aparece no card de clima → busca pelo header)
+    expect(await screen.findByRole('header', { name: 'Joinville' })).toBeOnTheScreen();
     expect(screen.getByText('qua, 8 de julho')).toBeOnTheScreen();
 
     // card da faculdade: fixo 19h com volta 8 °C mais fria → frase da mudança
@@ -92,6 +92,22 @@ describe('TodayScreen', () => {
     expect(screen.getByText('Passear com o cachorro')).toBeOnTheScreen();
     expect(screen.getByText(/^\d{1,2}h–\d{1,2}h$/)).toBeOnTheScreen();
     expect(screen.getByText(/Temperatura agradável/)).toBeOnTheScreen();
+  });
+
+  it('mostra o card de clima e navega para os detalhes ao tocar', async () => {
+    await renderToday(readyContainer([dogWalk]));
+
+    const card = await screen.findByRole('button', { name: /Clima em Joinville/ });
+    await user.press(card);
+
+    expect(mockPush).toHaveBeenCalledWith(`/city/${joinville.id}`);
+  });
+
+  it('sem hábitos ainda mostra o card de clima da cidade', async () => {
+    await renderToday(readyContainer([]));
+
+    expect(await screen.findByRole('button', { name: /Clima em Joinville/ })).toBeOnTheScreen();
+    expect(screen.getByText(strings.today.emptyTitle)).toBeOnTheScreen();
   });
 
   it('expande a timeline do card de janela no toque', async () => {
