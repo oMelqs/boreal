@@ -4,6 +4,7 @@ import type { Container } from '@/di/container';
 import type { Habit } from '@/domain/entities/habit';
 import { buildHabit } from '@/domain/usecases/testing/buildHabit';
 import { atHour, buildDay } from '@/domain/usecases/testing/buildHourlyForecast';
+import { useThemeStore } from '@/presentation/hooks/useThemeStore';
 import { strings } from '@/presentation/i18n/strings';
 import {
   createFakeContainer,
@@ -74,7 +75,10 @@ async function renderToday(container: Container, now = atHour(9)) {
 describe('TodayScreen', () => {
   const user = userEvent.setup();
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useThemeStore.setState({ override: null });
+  });
 
   it('critério §11: faculdade com vestimenta e ressalva ida/volta; passeio com janela e porquê', async () => {
     await renderToday(readyContainer([college, dogWalk]));
@@ -101,6 +105,16 @@ describe('TodayScreen', () => {
     await user.press(card);
 
     expect(mockPush).toHaveBeenCalledWith(`/city/${joinville.id}`);
+  });
+
+  it('alterna o tema pelo botão sol/lua do header', async () => {
+    useThemeStore.setState({ override: null });
+    await renderToday(readyContainer([dogWalk]));
+
+    // useColorScheme resolve para light nos testes → o botão oferece o escuro.
+    await user.press(await screen.findByRole('button', { name: strings.today.themeToDark }));
+
+    expect(useThemeStore.getState().override).toBe('dark');
   });
 
   it('sem hábitos ainda mostra o card de clima da cidade', async () => {

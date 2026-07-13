@@ -9,6 +9,7 @@ import { EmptyState } from '@/presentation/components/EmptyState';
 import { ErrorState } from '@/presentation/components/ErrorState';
 import { HabitCard } from '@/presentation/components/HabitCard';
 import { Skeleton } from '@/presentation/components/Skeleton';
+import { ThemeToggle } from '@/presentation/components/ThemeToggle';
 import { WeatherCard } from '@/presentation/components/WeatherCard';
 import { formatLocalDate } from '@/presentation/format/format';
 import { useCityStore } from '@/presentation/hooks/useCityStore';
@@ -67,6 +68,7 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
             ) : null}
           </View>
           <View style={styles.headerLinks}>
+            <ThemeToggle />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.today.manageHabits}

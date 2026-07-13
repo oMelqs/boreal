@@ -10,12 +10,12 @@ import { useTheme } from '@/presentation/theme/useTheme';
 
 export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
 
   return (
     <ContainerProvider container={container}>
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="auto" />
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
             headerShown: false,

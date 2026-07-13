@@ -70,6 +70,8 @@ export const strings = {
     manageHabits: 'Hábitos',
     changeCity: 'Trocar cidade',
     deviceCityName: 'Minha localização',
+    themeToLight: 'Mudar para o tema claro',
+    themeToDark: 'Mudar para o tema escuro',
     tomorrowBadge: 'amanhã',
     emptyTitle: 'Nenhum hábito por aqui',
     emptyHint: 'Cadastre seus hábitos para receber sugestões de vestimenta e horário todos os dias.',
