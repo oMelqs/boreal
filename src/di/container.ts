@@ -1,5 +1,11 @@
 import type { KeyValueStorage } from '@/data/datasources/asyncStorageClient';
 import { createAsyncStorageClient } from '@/data/datasources/asyncStorageClient';
+import type {
+  Coords,
+  LocationClient,
+  LocationPermission,
+} from '@/data/datasources/locationClient';
+import { createLocationClient } from '@/data/datasources/locationClient';
 import { createOpenMeteoClient } from '@/data/datasources/openMeteoClient';
 import { createHabitsRepository } from '@/data/repositories/habitsRepositoryImpl';
 import { createCityRepository } from '@/data/repositories/openMeteoCityRepository';
@@ -21,6 +27,10 @@ export type Container = {
   removeHabit(id: string): Promise<void>;
   getPreferences(): Promise<Preferences>;
   savePreferences(preferences: Preferences): Promise<void>;
+  /** Garante a permissão de localização (pede uma vez se indefinida). */
+  ensureLocationPermission(): Promise<LocationPermission>;
+  /** Posição atual do device; `null` se indisponível/negada. */
+  getCurrentPosition(): Promise<Coords | null>;
 };
 
 /**
@@ -34,6 +44,7 @@ export type Container = {
 export function createContainer(
   fetchFn: typeof fetch = fetch,
   storage: KeyValueStorage = createAsyncStorageClient(),
+  locationClient: LocationClient = createLocationClient(),
 ): Container {
   const client = createOpenMeteoClient(fetchFn);
   const cityRepository = createCityRepository(client);
@@ -49,6 +60,8 @@ export function createContainer(
     removeHabit: (id) => habitsRepository.remove(id),
     getPreferences: () => preferencesRepository.get(),
     savePreferences: (preferences) => preferencesRepository.save(preferences),
+    ensureLocationPermission: () => locationClient.ensurePermission(),
+    getCurrentPosition: () => locationClient.getCurrentPosition(),
   };
 }
 

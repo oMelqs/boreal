@@ -69,6 +69,7 @@ export const strings = {
   today: {
     manageHabits: 'Hábitos',
     changeCity: 'Trocar cidade',
+    deviceCityName: 'Minha localização',
     tomorrowBadge: 'amanhã',
     emptyTitle: 'Nenhum hábito por aqui',
     emptyHint: 'Cadastre seus hábitos para receber sugestões de vestimenta e horário todos os dias.',
