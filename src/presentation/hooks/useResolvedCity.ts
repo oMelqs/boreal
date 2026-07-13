@@ -66,8 +66,13 @@ export function useResolvedCity(): ResolvedCity {
   const defaultCity = preferences?.defaultCity ?? null;
   const city = deviceCity ?? defaultCity;
 
+  // Não trava o painel esperando o GPS quando já há cidade padrão: pinta a
+  // padrão na hora e o device sobrepõe quando (e se) resolver. Só espera o GPS
+  // quando não há nada para mostrar — evita piscar "sem cidade".
+  const waitingForLocation = locationQuery.isPending && defaultCity === null;
+
   return {
-    isLoading: loadingPreferences || locationQuery.isPending,
+    isLoading: loadingPreferences || waitingForLocation,
     city,
     source: deviceCity ? 'device' : defaultCity ? 'default' : null,
     locationStatus: locationQuery.data?.permission ?? null,

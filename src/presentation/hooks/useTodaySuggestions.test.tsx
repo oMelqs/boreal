@@ -54,10 +54,12 @@ describe('useTodaySuggestions', () => {
       }),
     );
 
-    await waitFor(() => expect(result.current.status).toBe('ready'));
-    const vm = result.current;
-    if (vm.status !== 'ready') throw new Error('esperava ready');
-    expect(vm.city.id).toBe(0); // cidade sentinela do device, não Joinville
+    // A padrão pode pintar primeiro; o GPS sobrepõe assim que resolve.
+    await waitFor(() => {
+      const vm = result.current;
+      if (vm.status !== 'ready') throw new Error('esperava ready');
+      expect(vm.city.id).toBe(0); // cidade sentinela do device, não Joinville
+    });
   });
 
   it('empty ainda expõe o clima da cidade para o card', async () => {
