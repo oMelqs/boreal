@@ -29,6 +29,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 144
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Boreal usa sua localização para mostrar o clima de onde você está, sem precisar buscar a cidade."
+        }
       ]
     ],
     "experiments": {
