@@ -68,24 +68,27 @@ export function WeatherCard({ city, weather, onPress }: WeatherCardProps) {
         <Text style={[typography.display, { color: colors.textPrimary }]}>{temp}</Text>
       </View>
 
-      <View style={[styles.bottomRow, { gap: spacing.sm }]}>
+      <View style={{ gap: spacing.sm }}>
         {bestWindow.kind === 'window' ? (
-          <>
-            <Text style={[typography.caption, styles.teaser, { color: colors.textSecondary }]}>
-              {strings.today.weather.bestWindow(
-                formatWindow(bestWindow.start, bestWindow.end),
-              )}
-            </Text>
-            <ScoreBadge score={bestWindow.averageScore} />
-          </>
-        ) : (
-          <Text style={[typography.caption, styles.teaser, { color: colors.textSecondary }]}>
-            {bestWindow.kind === 'day-over' ? strings.today.weather.dayOver : ''}
+          <Text style={[typography.caption, { color: colors.textSecondary }]}>
+            {strings.today.weather.bestWindow(formatWindow(bestWindow.start, bestWindow.end))}
           </Text>
-        )}
-        <Text style={[typography.label, { color: colors.accent }]}>
-          {strings.today.weather.cardHint} ›
-        </Text>
+        ) : bestWindow.kind === 'day-over' ? (
+          <Text style={[typography.caption, { color: colors.textSecondary }]}>
+            {strings.today.weather.dayOver}
+          </Text>
+        ) : null}
+        {/* Badge e "ver detalhes" numa linha curta própria → alinham entre si
+            mesmo quando o teaser acima quebra em duas linhas. */}
+        <View style={[styles.bottomRow, { gap: spacing.sm }]}>
+          {bestWindow.kind === 'window' ? (
+            <ScoreBadge score={bestWindow.averageScore} />
+          ) : null}
+          <View style={styles.spacer} />
+          <Text style={[typography.label, { color: colors.accent }]}>
+            {strings.today.weather.cardHint} ›
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -103,7 +106,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     lineHeight: 44,
   },
-  teaser: {
+  spacer: {
     flex: 1,
   },
   texts: {
