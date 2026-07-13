@@ -24,6 +24,9 @@ export function createFakeContainer(overrides: Partial<Container> = {}): Contain
     removeHabit: async () => {},
     getPreferences: async () => ({ defaultCity: null, onboardingDone: false }),
     savePreferences: async () => {},
+    // Sem GPS por padrão: os testes caem no fallback de cidade padrão.
+    ensureLocationPermission: async () => 'unavailable',
+    getCurrentPosition: async () => null,
     ...overrides,
   };
 }

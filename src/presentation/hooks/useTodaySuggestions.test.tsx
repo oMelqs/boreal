@@ -41,6 +41,35 @@ describe('useTodaySuggestions', () => {
     expect(vm.suggestions).toHaveLength(1);
     expect(vm.suggestions[0]).toMatchObject({ kind: 'window', when: 'hoje' });
     expect(vm.todayHours).toHaveLength(24);
+    // Clima do card: condição de agora (9h) + melhor janela de hoje.
+    expect(vm.weather.current?.hour.time).toEqual(atHour(9));
+    expect(vm.weather.bestWindow.kind).toBe('window');
+  });
+
+  it('GPS concedido sobrepõe a cidade padrão no painel', async () => {
+    const { result } = await renderToday(
+      readyContainer({
+        ensureLocationPermission: async () => 'granted',
+        getCurrentPosition: async () => ({ latitude: -23.55, longitude: -46.63 }),
+      }),
+    );
+
+    // A padrão pode pintar primeiro; o GPS sobrepõe assim que resolve.
+    await waitFor(() => {
+      const vm = result.current;
+      if (vm.status !== 'ready') throw new Error('esperava ready');
+      expect(vm.city.id).toBe(0); // cidade sentinela do device, não Joinville
+    });
+  });
+
+  it('empty ainda expõe o clima da cidade para o card', async () => {
+    const { result } = await renderToday(readyContainer({ getHabits: async () => [] }));
+
+    await waitFor(() => expect(result.current.status).toBe('empty'));
+    const vm = result.current;
+    if (vm.status !== 'empty') throw new Error('esperava empty');
+    expect(vm.city.name).toBe('Joinville');
+    expect(vm.weather.current?.hour.time).toEqual(atHour(9));
   });
 
   it('sem cidade padrão → no-city', async () => {

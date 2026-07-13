@@ -9,7 +9,7 @@ O clima é insumo; a recomendação é o produto. Boreal não mostra "27 °C, nu
 - **Hábito de horário fixo** (faculdade, trabalho às 19h) → *a vestimenta adequada*, comparando ida e volta.
   > Faculdade · 18h–22h · **Vai esfriar até a volta (22 °C → 15 °C): leve uma jaqueta leve mesmo saindo no calor.** ☂️
 
-No primeiro acesso um onboarding em etapas cadastra a cidade padrão e os hábitos; depois a home vira um painel "Hoje" com um card por hábito.
+No primeiro acesso um onboarding em etapas cadastra a cidade padrão e os hábitos; depois a home vira um painel "Hoje". Mesmo **sem nenhum hábito**, a home já abre com um **card de clima** da cidade — condição de agora e o melhor horário para sair — e um toque leva aos detalhes (próximas horas). A cidade é resolvida pela **localização do dispositivo** quando disponível, caindo na cidade padrão (ou na busca por nome) quando não é.
 
 ---
 
@@ -86,8 +86,9 @@ Clean Architecture adaptada a React Native, com **dependências apontando sempre
 | **Expo** | Setup zero-config, dev server web para verificação rápida, e o app do teste não precisa de módulo nativo custom. |
 | **TanStack Query** para server state | Cache, dedupe, `retry` e `staleTime` de graça. O forecast tem `staleTime` de 5 min e chave `['forecast', cityId]`; o geocoding, 24 h. Pull-to-refresh só invalida o forecast. |
 | **Zustand** para client state mínimo | Cidade selecionada, buscas recentes e o rascunho do onboarding. Sem o boilerplate do Redux — simplicidade é critério de avaliação. |
-| **DI por composition root** (sem framework) | `di/container.ts` é uma fábrica que injeta `fetch` e o storage. Trocar implementações em teste é passar outro argumento — sem `jest.mock` de módulo profundo. Um framework de DI seria over-engineering aqui. |
+| **DI por composition root** (sem framework) | `di/container.ts` é uma fábrica que injeta `fetch`, o storage e o cliente de localização. Trocar implementações em teste é passar outro argumento — sem `jest.mock` de módulo profundo. Um framework de DI seria over-engineering aqui. |
 | **AsyncStorage** com chaves versionadas (`habits:v1`, `prefs:v1`) | Persistência chave-valor é o suficiente; a versão na chave permite migração futura sem lib. |
+| **Localização do dispositivo** (`expo-location`) | A home resolve a cidade pelo GPS quando disponível (o fuso vem do próprio device; sem reverse-geocode, que é native-only) e **sobrepõe** a cidade padrão. Falha/recusa/web sem suporte → cai na cidade padrão ou na busca por nome. O acesso fica atrás de um port injetável (`locationClient`), testável sem native. |
 | **Frame "fake UTC"** | O wall-clock da cidade é codificado como UTC e lido sempre via `getUTCHours`. O motor compara instantes sem depender do timezone do device — "hoje" é sempre o dia local da cidade consultada. |
 
 ---
@@ -222,8 +223,9 @@ Deixado de fora de propósito, para manter o teste enxuto:
 - **Notificações push / lembretes** — evolução natural, mas exige agendamento nativo e permissões que não agregam ao núcleo.
 - **Sincronização em nuvem / contas** — não há backend; AsyncStorage cobre o caso local.
 - **Integração com calendário do device** e **múltiplas cidades por hábito** — atrito sem payoff no escopo.
-- **Geolocalização por GPS** — busca por nome já cumpre o requisito sem pedir permissão.
 - **E2E automatizado** — a pirâmide de testes cobre o risco; o próximo passo seria [Maestro](https://maestro.mobile.dev) para os fluxos de ponta a ponta.
+
+> **Desvio consciente do escopo original:** a especificação excluía a geolocalização por GPS (para não pedir permissão num teste). A localização do dispositivo foi adicionada depois, a pedido, para abrir a home direto no clima de onde a pessoa está — sempre com fallback gracioso para a cidade padrão / busca por nome quando o GPS não está disponível. O reverse-geocode (coordenada → nome de cidade) segue de fora: é native-only e não fornece timezone.
 
 ## Convenções
 
