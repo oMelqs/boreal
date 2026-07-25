@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -88,8 +88,10 @@ type FieldProps = {
   feeling: string;
   /** Trecho preenchido da trilha, em fração [0, 1]. */
   fill: { start: number; end: number };
-  /** Toque/arraste na trilha, já convertido em valor da escala. */
-  onScrub: (value: number) => void;
+  /** Início do gesto: define o alvo (no modo duplo, qual alça). */
+  onScrubStart: (value: number) => void;
+  /** Continuação do gesto, já convertida em valor da escala. */
+  onScrubMove: (value: number) => void;
   scale: Scale;
   children: (trackWidth: number) => React.ReactNode;
 };
@@ -100,33 +102,53 @@ function SliderField({
   valueText,
   feeling,
   fill,
-  onScrub,
+  onScrubStart,
+  onScrubMove,
   scale,
   children,
 }: FieldProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
 
-  /** Posição do toque na trilha → valor (a alça segue o dedo). */
-  function scrub(event: GestureResponderEvent) {
-    if (trackWidth <= 0) return;
+  /** Posição do toque na trilha → valor da escala. */
+  function valueAt(event: GestureResponderEvent): number | null {
+    if (trackWidth <= 0) return null;
     const ratio = clamp(event.nativeEvent.locationX / trackWidth, 0, 1);
-    onScrub(snap(scale.min + ratio * (scale.max - scale.min), scale));
+    return snap(scale.min + ratio * (scale.max - scale.min), scale);
   }
 
   return (
     <View style={{ gap: spacing.sm }}>
-      <View style={styles.header}>
-        <Text style={[typography.label, styles.uppercase, { color: colors.textSecondary }]}>
+      <View style={[styles.header, { gap: spacing.sm }]}>
+        <Text
+          style={[
+            typography.label,
+            styles.headerLabel,
+            styles.uppercase,
+            { color: colors.textSecondary },
+          ]}
+        >
           {label}
         </Text>
-        <Text style={[typography.heading, { color: colors.textPrimary }]}>{valueText}</Text>
+        {/* O valor nunca quebra: é a leitura que a pessoa acompanha ao arrastar. */}
+        <Text
+          numberOfLines={1}
+          style={[typography.heading, styles.headerValue, { color: colors.textPrimary }]}
+        >
+          {valueText}
+        </Text>
       </View>
 
       <View
         onLayout={(event: LayoutChangeEvent) => setTrackWidth(event.nativeEvent.layout.width)}
-        onResponderGrant={scrub}
-        onResponderMove={scrub}
+        onResponderGrant={(event) => {
+          const value = valueAt(event);
+          if (value !== null) onScrubStart(value);
+        }}
+        onResponderMove={(event) => {
+          const value = valueAt(event);
+          if (value !== null) onScrubMove(value);
+        }}
         onStartShouldSetResponder={() => true}
         style={styles.trackArea}
       >
@@ -184,7 +206,8 @@ export function Slider({
       fill={{ start: 0, end: (value - min) / (max - min) }}
       feeling={describeValue(value)}
       label={label}
-      onScrub={onChange}
+      onScrubMove={onChange}
+      onScrubStart={onChange}
       scale={scale}
       valueText={formatValue(value)}
     >
@@ -236,11 +259,12 @@ export function RangeSlider({
   const span = max - min;
   const valueText = formatValue(low, high);
   const feeling = describeValue(low, high);
+  // A alça é escolhida no toque inicial e não troca no meio do arraste; sem
+  // isso, passar o dedo pela outra ponta faria a faixa "pular" de alça.
+  const dragging = useRef<'low' | 'high'>('low');
 
-  /** Toque na trilha move a alça mais próxima, respeitando a amplitude mínima. */
-  function scrub(next: number) {
-    const movesLow = Math.abs(next - low) <= Math.abs(next - high);
-    if (movesLow) {
+  function moveEdge(next: number, edge: 'low' | 'high') {
+    if (edge === 'low') {
       onChange([clamp(next, min, high - minSpread), high]);
     } else {
       onChange([low, clamp(next, low + minSpread, max)]);
@@ -252,7 +276,12 @@ export function RangeSlider({
       fill={{ start: (low - min) / span, end: (high - min) / span }}
       feeling={feeling}
       label={label}
-      onScrub={scrub}
+      onScrubMove={(next) => moveEdge(next, dragging.current)}
+      onScrubStart={(next) => {
+        const edge = Math.abs(next - low) <= Math.abs(next - high) ? 'low' : 'high';
+        dragging.current = edge;
+        moveEdge(next, edge);
+      }}
       scale={scale}
       valueText={valueText}
     >
@@ -287,6 +316,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  headerLabel: {
+    flex: 1,
+  },
+  headerValue: {
+    flexShrink: 0,
   },
   thumb: {
     borderRadius: THUMB_SIZE / 2,

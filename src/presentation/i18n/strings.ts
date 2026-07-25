@@ -197,7 +197,7 @@ export const strings = {
     customLink: 'Prefiro definir na mão',
     tempTitle: 'Qual temperatura é agradável para você?',
     tempHint: 'Vale para a sensação térmica, não para o número do termômetro.',
-    tempRangeLabel: 'Faixa de temperatura agradável',
+    tempRangeLabel: 'Temperatura agradável',
     tempRangeValue: (min: number, max: number) => `de ${min} °C a ${max} °C`,
     /** Leitura em linguagem natural da faixa escolhida (feedback do slider). */
     tempFeeling: (min: number, max: number) => {
