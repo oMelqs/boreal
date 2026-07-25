@@ -15,6 +15,8 @@ import { DEFAULT_SCORING_PROFILE, recommendBestWindow } from '@/domain/usecases/
 import { resolveComfortProfile } from '@/domain/usecases/resolveComfortProfile';
 import { mapErrorToMessage } from '@/presentation/i18n/errorMessages';
 
+import { usePreferences } from './usePreferences';
+
 /** Forecast fica fresco por 5 minutos (§4.3). */
 const FORECAST_STALE_TIME_MS = 5 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -120,6 +122,7 @@ function buildWindowDetails(
 export function useRecommendation(city: City, options: Options = {}): RecommendationViewModel {
   const container = useContainer();
   const queryClient = useQueryClient();
+  const stored = usePreferences();
 
   const query = useQuery({
     queryKey: ['forecast', city.id],
@@ -140,8 +143,8 @@ export function useRecommendation(city: City, options: Options = {}): Recommenda
   }
 
   // Perfil pessoal puro (§4.3): a recomendação genérica não tem intensidade.
-  // DEFAULT até a persistência v2 chegar (equivale ao comportamento atual).
-  const preferences = DEFAULT_USER_PREFERENCES;
+  // O default cobre a janela em que as preferências ainda estão carregando.
+  const preferences = stored.preferences?.preferences ?? DEFAULT_USER_PREFERENCES;
   const profile = resolveComfortProfile(preferences);
   const scoringProfile: ScoringProfile = {
     ...DEFAULT_SCORING_PROFILE,
