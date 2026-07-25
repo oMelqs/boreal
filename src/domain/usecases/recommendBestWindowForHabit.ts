@@ -1,17 +1,13 @@
 import type { FlexibleSchedule, Habit } from '../entities/habit';
 import type { HourlyForecast } from '../entities/hourlyForecast';
-import type { SleepSchedule, UserPreferences } from '../entities/preferences';
+import type { UserPreferences } from '../entities/preferences';
 import { DEFAULT_USER_PREFERENCES } from '../entities/preferences';
 import type { Recommendation } from '../entities/recommendation';
-import type { AwakeCycle } from './awakeWindow';
-import { currentAwakeCycle, isWithinAwakeCycle } from './awakeWindow';
-import { computeComfortScore } from './computeComfortScore';
-import { sameLocalDay, splitByLocalDay } from './localDay';
+import { splitByLocalDay } from './localDay';
+import { nextCyclePreview } from './nextCyclePreview';
 import type { ScoringProfile } from './recommendBestWindow';
 import { recommendBestWindow } from './recommendBestWindow';
 import { resolveComfortProfile } from './resolveComfortProfile';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Resultado para hábitos de horário livre: janela ou impossibilidade com razão. */
 export type HabitWindowResult =
@@ -64,64 +60,26 @@ function boundsLabel(schedule: FlexibleSchedule): string | null {
 }
 
 /**
- * Horas do próximo ciclo acordado (a "manhã seguinte" de quem tem rotina):
- * o ciclo corrente deslocado um dia — ou o próprio ciclo devolvido por
- * `currentAwakeCycle` quando ele já é o de amanhã (consulta pós-sono).
+ * Frase da prévia na razão do no-slot. Com rotina de sono o texto segue o
+ * §6.2 ("Amanhã a partir das {acordar}: …"); sem rotina, a forma original.
  */
-function nextCycleHours(
+function previewSentence(
   hours: readonly HourlyForecast[],
   now: Date,
-  sleep: SleepSchedule,
-): HourlyForecast[] {
-  const cycle = currentAwakeCycle(now, sleep);
-  const startsTomorrow =
-    cycle.start.getTime() > now.getTime() && !sameLocalDay(cycle.start, now);
-  const next: AwakeCycle = startsTomorrow
-    ? cycle
-    : {
-        start: new Date(cycle.start.getTime() + DAY_MS),
-        end: new Date(cycle.end.getTime() + DAY_MS),
-      };
-  return hours.filter((hour) => isWithinAwakeCycle(hour.time, next));
-}
-
-/**
- * Prévia da primeira hora de amanhã elegível para o hábito (dados, bounds e
- * dia/janela acordada) — usada na razão do no-slot. Com rotina de sono, o
- * texto segue o §6.2: "Amanhã a partir das {acordar}: …".
- */
-function tomorrowPreview(
-  tomorrow: readonly HourlyForecast[],
   profile: ScoringProfile,
   hasSleep: boolean,
 ): string | null {
-  const withinBounds = (hour: HourlyForecast): boolean => {
-    const minutes = hour.time.getUTCHours() * 60 + hour.time.getUTCMinutes();
-    const parse = (time: string) => {
-      const [h, m] = time.split(':').map(Number);
-      return h * 60 + m;
-    };
-    if (profile.bounds?.earliest !== undefined && minutes < parse(profile.bounds.earliest)) {
-      return false;
-    }
-    if (profile.bounds?.latest !== undefined && minutes + 60 > parse(profile.bounds.latest)) {
-      return false;
-    }
-    return true;
-  };
+  const preview = nextCyclePreview({
+    hours,
+    now,
+    params: profile,
+    ...(profile.sleep !== undefined ? { sleep: profile.sleep } : {}),
+    ...(profile.bounds !== undefined ? { bounds: profile.bounds } : {}),
+  });
+  if (preview === null) return null;
 
-  const candidate = tomorrow.find(
-    (hour) =>
-      (hasSleep || hour.isDay) &&
-      withinBounds(hour) &&
-      computeComfortScore(hour, profile) !== null,
-  );
-  if (!candidate || candidate.apparentTemp === null) return null;
-
-  const startHour = candidate.time.getUTCHours();
-  const temp = Math.round(candidate.apparentTemp);
-  const prob = Math.round(candidate.precipitationProb ?? 0);
-  const rain = prob < 20 ? 'sem chuva' : `${prob}% de chuva`;
+  const { startHour, temp, precipitationProb } = preview;
+  const rain = precipitationProb < 20 ? 'sem chuva' : `${precipitationProb}% de chuva`;
   return hasSleep
     ? `Amanhã a partir das ${startHour}h: ${temp} °C, ${rain}.`
     : `Amanhã: ${startHour}h, ${temp} °C, ${rain}.`;
@@ -150,17 +108,16 @@ export function recommendBestWindowForHabit(
   const schedule = habit.schedule;
   const profile = profileFor(habit, schedule, preferences);
   const sleep = preferences.sleep;
-  const { today, tomorrow } = splitByLocalDay(hours, now);
 
   // Com rotina de sono a cerca é o próprio ciclo acordado (que pode cruzar a
   // meia-noite); o motor recorta. Sem rotina, a cerca segue o dia local.
+  const today = splitByLocalDay(hours, now).today;
   const result = recommendBestWindow(sleep !== undefined ? hours : today, now, profile);
   if (result.kind === 'window') {
     return result;
   }
 
-  const previewHours = sleep !== undefined ? nextCycleHours(hours, now, sleep) : tomorrow;
-  const preview = tomorrowPreview(previewHours, profile, sleep !== undefined);
+  const preview = previewSentence(hours, now, profile, sleep !== undefined);
   const label = boundsLabel(schedule);
 
   let base: string;
