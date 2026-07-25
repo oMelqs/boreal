@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { NetworkError } from '@/data/errors';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { buildHabit } from '@/domain/usecases/testing/buildHabit';
 import { atHour, buildDay } from '@/domain/usecases/testing/buildHourlyForecast';
 import {
@@ -16,7 +17,7 @@ const habit = buildHabit({ days: [3] });
 
 function readyContainer(overrides = {}) {
   return createFakeContainer({
-    getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true }),
+    getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
     getHabits: async () => [habit],
     getForecast: async () => buildDay(0, 48),
     ...overrides,
@@ -75,7 +76,7 @@ describe('useTodaySuggestions', () => {
   it('sem cidade padrão → no-city', async () => {
     const { result } = await renderToday(
       readyContainer({
-        getPreferences: async () => ({ defaultCity: null, onboardingDone: true }),
+        getPreferences: async () => ({ defaultCity: null, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
       }),
     );
 

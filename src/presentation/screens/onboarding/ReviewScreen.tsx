@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useContainer } from '@/di/ContainerProvider';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { Button } from '@/presentation/components/Button';
 import { StepHeader } from '@/presentation/components/StepHeader';
 import { useOnboarding } from '@/presentation/hooks/useOnboarding';
@@ -32,6 +33,7 @@ export function ReviewScreen() {
       await savePreferences({
         defaultCity: city ?? preferences?.defaultCity ?? null,
         onboardingDone: true,
+        preferences: preferences?.preferences ?? DEFAULT_USER_PREFERENCES,
       });
       await queryClient.invalidateQueries({ queryKey: ['habits'] });
       reset();
