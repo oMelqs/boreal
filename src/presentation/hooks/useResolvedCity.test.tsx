@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { strings } from '@/presentation/i18n/strings';
 import { createFakeContainer, createProvidersWrapper, joinville } from '@/presentation/testing/providers';
 
@@ -14,7 +15,7 @@ async function render(container = createFakeContainer()) {
 describe('useResolvedCity', () => {
   it('GPS concedido sobrepõe a cidade padrão', async () => {
     const container = createFakeContainer({
-      getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true }),
+      getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
       ensureLocationPermission: async () => 'granted',
       getCurrentPosition: async () => ({ latitude: -23.55, longitude: -46.63 }),
     });
@@ -29,7 +30,7 @@ describe('useResolvedCity', () => {
 
   it('GPS negado cai na cidade padrão', async () => {
     const container = createFakeContainer({
-      getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true }),
+      getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
       ensureLocationPermission: async () => 'denied',
     });
     const { result } = await render(container);
@@ -41,7 +42,7 @@ describe('useResolvedCity', () => {
 
   it('GPS concedido mas sem posição cai na cidade padrão', async () => {
     const container = createFakeContainer({
-      getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true }),
+      getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
       ensureLocationPermission: async () => 'granted',
       getCurrentPosition: async () => null,
     });
@@ -53,7 +54,7 @@ describe('useResolvedCity', () => {
 
   it('sem GPS e sem cidade padrão → sem cidade', async () => {
     const container = createFakeContainer({
-      getPreferences: async () => ({ defaultCity: null, onboardingDone: true }),
+      getPreferences: async () => ({ defaultCity: null, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
       ensureLocationPermission: async () => 'unavailable',
     });
     const { result } = await render(container);

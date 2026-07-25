@@ -16,6 +16,7 @@ import { DEFAULT_SCORING_PROFILE, recommendBestWindow } from '@/domain/usecases/
 import { resolveComfortProfile } from '@/domain/usecases/resolveComfortProfile';
 import { mapErrorToMessage } from '@/presentation/i18n/errorMessages';
 
+import { usePreferences } from './usePreferences';
 import { useResolvedCity } from './useResolvedCity';
 
 /** Mesmo staleTime do fluxo de recomendação (§4.3) — cache compartilhado. */
@@ -72,6 +73,7 @@ export function useTodaySuggestions(options: Options = {}): TodaySuggestionsView
   const container = useContainer();
   const queryClient = useQueryClient();
   const resolved = useResolvedCity();
+  const stored = usePreferences();
   const city = resolved.city;
 
   const habitsQuery = useQuery({
@@ -110,9 +112,9 @@ export function useTodaySuggestions(options: Options = {}): TodaySuggestionsView
     };
   }
 
-  // Perfil pessoal (§4): DEFAULT até a persistência v2 chegar — equivale ao
-  // comportamento atual. O card de clima usa o perfil puro, sem intensidade.
-  const preferences = DEFAULT_USER_PREFERENCES;
+  // Perfil pessoal persistido (§4); o default cobre a janela de carregamento.
+  // O card de clima usa o perfil puro, sem intensidade.
+  const preferences = stored.preferences?.preferences ?? DEFAULT_USER_PREFERENCES;
   const profile = resolveComfortProfile(preferences);
 
   const hours = forecastQuery.data;

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import type { Container } from '@/di/container';
 import { ContainerProvider } from '@/di/ContainerProvider';
 import type { City } from '@/domain/entities/city';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 
 export const joinville: City = {
   id: 3459712,
@@ -22,7 +23,11 @@ export function createFakeContainer(overrides: Partial<Container> = {}): Contain
     getHabits: async () => [],
     saveHabit: async () => {},
     removeHabit: async () => {},
-    getPreferences: async () => ({ defaultCity: null, onboardingDone: false }),
+    getPreferences: async () => ({
+      defaultCity: null,
+      onboardingDone: false,
+      preferences: DEFAULT_USER_PREFERENCES,
+    }),
     savePreferences: async () => {},
     // Sem GPS por padrão: os testes caem no fallback de cidade padrão.
     ensureLocationPermission: async () => 'unavailable',

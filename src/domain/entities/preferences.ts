@@ -1,15 +1,12 @@
 import type { City } from './city';
 
-/** Preferências locais da pessoa usuária (§4 dos hábitos). */
+/** Preferências locais da pessoa usuária (§4 dos hábitos + §3 das preferências). */
 export type Preferences = {
   /** Cidade padrão dos hábitos; null antes do onboarding. */
   defaultCity: City | null;
   onboardingDone: boolean;
-};
-
-export const DEFAULT_PREFERENCES: Preferences = {
-  defaultCity: null,
-  onboardingDone: false,
+  /** Perfil de conforto e rotina de sono que parametrizam os motores. */
+  preferences: UserPreferences;
 };
 
 /** Sensibilidade térmica em linguagem natural (§3 das preferências). */
@@ -51,4 +48,10 @@ export type UserPreferences = {
 /** Equilibrado sem rotina de sono: reproduz o comportamento original do app. */
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   comfort: { kind: 'preset', preset: 'equilibrado' },
+};
+
+export const DEFAULT_PREFERENCES: Preferences = {
+  defaultCity: null,
+  onboardingDone: false,
+  preferences: DEFAULT_USER_PREFERENCES,
 };

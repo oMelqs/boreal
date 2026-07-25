@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { NetworkError } from '@/data/errors';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { buildHabit } from '@/domain/usecases/testing/buildHabit';
 import { atHour, buildDay } from '@/domain/usecases/testing/buildHourlyForecast';
 import {
@@ -16,7 +17,11 @@ const habit = buildHabit({ days: [3] });
 
 function readyContainer(overrides = {}) {
   return createFakeContainer({
-    getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true }),
+    getPreferences: async () => ({
+      defaultCity: joinville,
+      onboardingDone: true,
+      preferences: DEFAULT_USER_PREFERENCES,
+    }),
     getHabits: async () => [habit],
     getForecast: async () => buildDay(0, 48),
     ...overrides,
@@ -75,11 +80,47 @@ describe('useTodaySuggestions', () => {
   it('sem cidade padrão → no-city', async () => {
     const { result } = await renderToday(
       readyContainer({
-        getPreferences: async () => ({ defaultCity: null, onboardingDone: true }),
+        getPreferences: async () => ({
+          defaultCity: null,
+          onboardingDone: true,
+          preferences: DEFAULT_USER_PREFERENCES,
+        }),
       }),
     );
 
     await waitFor(() => expect(result.current.status).toBe('no-city'));
+  });
+
+  it('o perfil persistido chega ao motor: rotina de sono estende a janela à noite', async () => {
+    // Tarde quente (32 °C), noite amena e escura: sem rotina o motor para no
+    // fim do dia; com rotina 07h–23h a janela avança para a noite.
+    const nightlyDay = () => {
+      const overrides: Record<number, { apparentTemp?: number; isDay?: boolean }> = {};
+      for (let h = 12; h <= 18; h++) overrides[h] = { apparentTemp: 32 };
+      for (let h = 19; h <= 22; h++) overrides[h] = { isDay: false, apparentTemp: 22 };
+      return buildDay(0, 48, overrides);
+    };
+    const withSleep = readyContainer({
+      getForecast: nightlyDay,
+      getPreferences: async () => ({
+        defaultCity: joinville,
+        onboardingDone: true,
+        preferences: {
+          ...DEFAULT_USER_PREFERENCES,
+          sleep: { wakeTime: '07:00', sleepTime: '23:00' },
+        },
+      }),
+    });
+
+    const { result } = await renderToday(withSleep, atHour(12));
+
+    await waitFor(() => {
+      const vm = result.current;
+      if (vm.status !== 'ready') throw new Error('esperava ready');
+      if (vm.weather.bestWindow.kind !== 'window') throw new Error('esperava janela');
+      expect(vm.weather.bestWindow.start.getUTCHours()).toBeGreaterThanOrEqual(19);
+      expect(vm.weather.bestWindow.reasons[0]).toBe('já de noite');
+    });
   });
 
   it('sem hábitos → empty', async () => {

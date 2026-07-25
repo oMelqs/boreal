@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 
 import type { City } from '@/domain/entities/city';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { CityListItem } from '@/presentation/components/CityListItem';
 import { EmptyState } from '@/presentation/components/EmptyState';
 import { ErrorState } from '@/presentation/components/ErrorState';
@@ -34,6 +35,7 @@ export function CityStepScreen({ searchDebounceMs, standalone = false }: CitySte
     await savePreferences({
       defaultCity: city,
       onboardingDone: preferences?.onboardingDone ?? false,
+      preferences: preferences?.preferences ?? DEFAULT_USER_PREFERENCES,
     });
     if (standalone) {
       router.back();

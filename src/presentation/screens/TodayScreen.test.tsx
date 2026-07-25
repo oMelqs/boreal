@@ -2,6 +2,7 @@ import { render, screen, userEvent } from '@testing-library/react-native';
 
 import type { Container } from '@/di/container';
 import type { Habit } from '@/domain/entities/habit';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { buildHabit } from '@/domain/usecases/testing/buildHabit';
 import { atHour, buildDay } from '@/domain/usecases/testing/buildHourlyForecast';
 import { useThemeStore } from '@/presentation/hooks/useThemeStore';
@@ -56,7 +57,7 @@ function coolingDay() {
 
 function readyContainer(habits: Habit[], overrides: Partial<Container> = {}) {
   return createFakeContainer({
-    getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true }),
+    getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
     getHabits: async () => habits,
     getForecast: async () => coolingDay(),
     ...overrides,
@@ -169,7 +170,7 @@ describe('TodayScreen', () => {
   it('sem cidade padrão: convite para escolher cidade', async () => {
     await renderToday(
       readyContainer([], {
-        getPreferences: async () => ({ defaultCity: null, onboardingDone: true }),
+        getPreferences: async () => ({ defaultCity: null, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
       }),
     );
 
