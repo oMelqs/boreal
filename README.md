@@ -17,9 +17,13 @@ O que é "bom tempo" não é igual para todo mundo: o perfil diz se você é **f
 
 ## Telas
 
-| Onboarding | Painel "Hoje" | Gerenciar hábitos | Recomendação (busca avulsa) |
-|---|---|---|---|
-| ![Onboarding](docs/screenshots/onboarding.png) | ![Hoje](docs/screenshots/today.png) | ![Hábitos](docs/screenshots/habits.png) | ![Recomendação](docs/screenshots/recommendation.png) |
+| Onboarding | Painel "Hoje" | Recomendação e timeline |
+|---|---|---|
+| ![Onboarding](docs/screenshots/onboarding.png) | ![Hoje](docs/screenshots/today.png) | ![Recomendação](docs/screenshots/recommendation.png) |
+
+| Perfil de conforto | Rotina de sono | Gerenciar hábitos |
+|---|---|---|
+| ![Preferências](docs/screenshots/preferences.png) | ![Rotina de sono](docs/screenshots/sleep.png) | ![Hábitos](docs/screenshots/habits.png) |
 
 Tema **noite polar** (dark) e **manhã de gelo** (light), com acento verde-aurora. Ambos os modos passam por teste de contraste AA. Um botão sol/lua discreto no topo da home alterna entre eles, sobrepondo o esquema do sistema (a escolha é persistida).
 
