@@ -25,6 +25,7 @@ describe('forecastMapper', () => {
       time: new Date(Date.UTC(2026, 6, 8, 0, 0)),
       apparentTemp: 11.1,
       temp: 11.2,
+      humidity: 93,
       precipitationProb: 0,
       precipitationMm: 0,
       windSpeed: 1.1,
@@ -46,6 +47,7 @@ describe('forecastMapper', () => {
 
     expect(hours[13].windSpeed).toBeNull();
     expect(hours[14].apparentTemp).toBeNull();
+    expect(hours[14].humidity).toBeNull();
     expect(hours[15].uvIndex).toBeNull();
   });
 
@@ -62,6 +64,7 @@ describe('forecastMapper', () => {
         time: ['2026-07-08T10:00', '2026-07-08T11:00'],
         temperature_2m: [20.1],
         apparent_temperature: [21.5],
+        relative_humidity_2m: [60],
         precipitation_probability: [5],
         precipitation: [0],
         wind_speed_10m: [3.2],
@@ -78,6 +81,7 @@ describe('forecastMapper', () => {
       time: new Date(Date.UTC(2026, 6, 8, 11, 0)),
       apparentTemp: null,
       temp: null,
+      humidity: null,
       precipitationProb: null,
       precipitationMm: null,
       windSpeed: null,

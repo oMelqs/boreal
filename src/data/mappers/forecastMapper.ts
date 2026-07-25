@@ -25,6 +25,7 @@ export function mapForecastResponseToHourlyForecasts(dto: ForecastResponseDto): 
     time: parseLocalTimeAsUtc(time),
     apparentTemp: hourly.apparent_temperature.at(i) ?? null,
     temp: hourly.temperature_2m.at(i) ?? null,
+    humidity: hourly.relative_humidity_2m.at(i) ?? null,
     precipitationProb: hourly.precipitation_probability.at(i) ?? null,
     precipitationMm: hourly.precipitation.at(i) ?? null,
     windSpeed: hourly.wind_speed_10m.at(i) ?? null,

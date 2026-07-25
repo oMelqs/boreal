@@ -53,6 +53,7 @@ describe('openMeteoWeatherRepository', () => {
             time: [],
             temperature_2m: [],
             apparent_temperature: [],
+            relative_humidity_2m: [],
             precipitation_probability: [],
             precipitation: [],
             wind_speed_10m: [],
