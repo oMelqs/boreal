@@ -250,6 +250,18 @@ function reasonCandidates(window: WindowCandidate, profile: ScoringProfile): Rea
     { factor: 'wind', penalty: averagePenalty(window, 'wind'), phrase: windPhrase(window) },
   ];
 
+  // Umidade só vira fator quando penaliza (padrão do UV) — abaixo do limite
+  // pessoal, "ar seco" não acrescenta nada à explicação.
+  const humidityPenalty = averagePenalty(window, 'humidity');
+  if (humidityPenalty > 0) {
+    const avgHumidity = Math.round(averageInput(window, (inputs) => inputs.humidity));
+    candidates.push({
+      factor: 'humidity',
+      penalty: humidityPenalty,
+      phrase: `ar abafado (${avgHumidity}%)`,
+    });
+  }
+
   const maxUv = Math.max(...window.hours.map((s) => s.breakdown.inputs.uvIndex));
   if (maxUv >= HIGH_UV_THRESHOLD) {
     candidates.push({

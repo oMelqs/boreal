@@ -16,6 +16,8 @@ export type ComfortScoringParams = {
   uvWeight: 'normal' | 'alto';
   /** Velocidade de vento (km/h) onde a penalidade começa. */
   windToleranceKmh: number;
+  /** Umidade relativa (%) a partir da qual o abafamento penaliza. */
+  maxHumidity: number;
 };
 
 /** Comportamento original do app: faixa 18–26 °C, 4 pts/°C, UV normal, vento livre até 15. */
@@ -24,6 +26,7 @@ export const DEFAULT_COMFORT_PARAMS: ComfortScoringParams = {
   tempPenaltyPerDegree: 4,
   uvWeight: 'normal',
   windToleranceKmh: 15,
+  maxHumidity: 70,
 };
 
 /** Penalidade aplicada por cada fator, em pontos do score (0–100). */
@@ -32,6 +35,7 @@ export type ComfortPenalties = {
   rain: number;
   wind: number;
   uv: number;
+  humidity: number;
 };
 
 /** Valores usados no cálculo, já validados como presentes (não-null). */
@@ -40,6 +44,7 @@ export type ComfortInputs = {
   precipitationProb: number;
   windSpeed: number;
   uvIndex: number;
+  humidity: number;
 };
 
 /** Score da hora com o detalhamento por fator (usado para ordenar as razões). */
@@ -63,6 +68,15 @@ const WIND_LINEAR_BAND_KMH = 15;
 /** Acima da banda linear, cada km/h extra custa 1,5 ponto, até o teto de 35. */
 const WIND_STRONG_PENALTY_PER_KMH = 1.5;
 const WIND_PENALTY_CAP = 35;
+
+/** Umidade só pesa de verdade combinada com calor (§5.2 das preferências). */
+const MUGGY_TEMP_THRESHOLD_C = 22;
+/** Cada ponto de UR acima do limite pessoal custa 0,8 no mormaço. */
+const HUMIDITY_PENALTY_PER_POINT = 0.8;
+const HUMIDITY_HOT_CAP = 25;
+/** Ar úmido e frio incomoda menos que mormaço: metade da penalidade. */
+const HUMIDITY_COLD_FACTOR = 0.5;
+const HUMIDITY_COLD_CAP = 12;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -96,6 +110,23 @@ function windPenalty(windSpeed: number, params: ComfortScoringParams): number {
 }
 
 /**
+ * Umidade acima do limite pessoal (§5.2): no calor (sensação ≥ 22 °C) é
+ * mormaço — 0,8 ponto por % excedente, cap 25; no frio, metade com cap 12.
+ */
+function humidityPenalty(
+  humidity: number,
+  apparentTemp: number,
+  params: ComfortScoringParams,
+): number {
+  const excess = humidity - params.maxHumidity;
+  if (excess <= 0) return 0;
+  const hotPenalty = excess * HUMIDITY_PENALTY_PER_POINT;
+  return apparentTemp >= MUGGY_TEMP_THRESHOLD_C
+    ? Math.min(HUMIDITY_HOT_CAP, hotPenalty)
+    : Math.min(HUMIDITY_COLD_CAP, hotPenalty * HUMIDITY_COLD_FACTOR);
+}
+
+/**
  * UV por faixas contínuas: ≤ 5 → 0, < 8 → −5, < 11 → −12, ≥ 11 → −20.
  * O SPECS define faixas inteiras (6–7, 8–10); como o índice UV da API é
  * contínuo, valores no intervalo (5, 6) caem na faixa de −5.
@@ -117,13 +148,14 @@ export function computeComfortBreakdown(
   hour: HourlyForecast,
   params: ComfortScoringParams = DEFAULT_COMFORT_PARAMS,
 ): ComfortBreakdown | null {
-  const { apparentTemp, precipitationProb, precipitationMm, windSpeed, uvIndex } = hour;
+  const { apparentTemp, precipitationProb, precipitationMm, windSpeed, uvIndex, humidity } = hour;
   if (
     apparentTemp === null ||
     precipitationProb === null ||
     precipitationMm === null ||
     windSpeed === null ||
-    uvIndex === null
+    uvIndex === null ||
+    humidity === null
   ) {
     return null;
   }
@@ -133,15 +165,17 @@ export function computeComfortBreakdown(
     rain: rainPenalty(precipitationProb, precipitationMm),
     wind: windPenalty(windSpeed, params),
     uv: uvPenalty(uvIndex, params),
+    humidity: humidityPenalty(humidity, apparentTemp, params),
   };
 
-  const total = penalties.temp + penalties.rain + penalties.wind + penalties.uv;
+  const total =
+    penalties.temp + penalties.rain + penalties.wind + penalties.uv + penalties.humidity;
   const value = clamp(100 - total, 0, 100);
 
   return {
     score: { value, label: labelForScore(value) },
     penalties,
-    inputs: { apparentTemp, precipitationProb, windSpeed, uvIndex },
+    inputs: { apparentTemp, precipitationProb, windSpeed, uvIndex, humidity },
   };
 }
 
