@@ -9,6 +9,7 @@ const FORECAST_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 const HOURLY_VARIABLES = [
   'temperature_2m',
   'apparent_temperature',
+  'relative_humidity_2m',
   'precipitation_probability',
   'precipitation',
   'wind_speed_10m',

@@ -11,6 +11,8 @@ export type HourlyForecast = {
   apparentTemp: number | null;
   /** Temperatura do ar em °C (exibição na timeline). */
   temp: number | null;
+  /** Umidade relativa em % — pesa no score como mormaço (§5.2 das preferências). */
+  humidity: number | null;
   /** Probabilidade de precipitação, 0–100. */
   precipitationProb: number | null;
   /** Precipitação prevista na hora, em mm. */

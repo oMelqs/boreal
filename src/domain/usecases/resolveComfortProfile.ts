@@ -3,13 +3,11 @@ import type { ThermalPreset, UserPreferences } from '../entities/preferences';
 import type { ComfortScoringParams } from './computeComfortScore';
 
 /**
- * Perfil de conforto resolvido: os parâmetros do motor de score mais os campos
- * que os outros motores consomem — `maxHumidity` (fator de umidade) e
- * `tempOffset` (motor de vestimenta; negativo = sente mais frio = veste mais).
+ * Perfil de conforto resolvido: os parâmetros do motor de score (incluindo o
+ * limite pessoal de umidade) mais o `tempOffset` do motor de vestimenta
+ * (negativo = sente mais frio = veste mais).
  */
 export type ResolvedComfortProfile = ComfortScoringParams & {
-  /** % UR a partir da qual o abafamento começa a penalizar o score. */
-  maxHumidity: number;
   /** °C somados à sensação térmica só na escolha do nível de agasalho. */
   tempOffset: number;
 };

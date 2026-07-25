@@ -22,6 +22,7 @@ export function buildHour(overrides: Partial<HourlyForecast> = {}): HourlyForeca
     time: atHour(12),
     apparentTemp: 24,
     temp: 23,
+    humidity: 55,
     precipitationProb: 0,
     precipitationMm: 0,
     windSpeed: 8,
