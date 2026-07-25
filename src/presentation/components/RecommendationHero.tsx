@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { Recommendation } from '@/domain/entities/recommendation';
 import { formatReasonsSentence, formatWindow } from '@/presentation/format/format';
+import type { ResumeInfo } from '@/presentation/hooks/useRecommendation';
 import { strings } from '@/presentation/i18n/strings';
 import { useTheme } from '@/presentation/theme/useTheme';
 
@@ -9,13 +10,26 @@ import { ScoreBadge } from './ScoreBadge';
 
 type RecommendationHeroProps = {
   recommendation: Extract<Recommendation, { kind: 'window' | 'day-over' }>;
+  /** Com rotina de sono, o fim do dia vem com a hora em que as sugestões voltam. */
+  resume?: ResumeInfo | null;
 };
+
+/** "Amanhã a partir das 07:00: 18 °C, sem chuva." */
+function resumeSentence(resume: ResumeInfo): string {
+  const { wakeTime, preview } = resume;
+  if (preview === null) return strings.recommendation.resumesAt(wakeTime);
+  const rain =
+    preview.precipitationProb < 20
+      ? strings.recommendation.previewNoRain
+      : strings.recommendation.previewRain(preview.precipitationProb);
+  return strings.recommendation.resumesAtWithPreview(wakeTime, preview.temp, rain);
+}
 
 /**
  * Bloco 1 da hierarquia (§6.2): a primeira coisa que se lê. Janela em
  * destaque gigante com o porquê; day-over ocupa o lugar do hero em tom leve.
  */
-export function RecommendationHero({ recommendation }: RecommendationHeroProps) {
+export function RecommendationHero({ recommendation, resume }: RecommendationHeroProps) {
   const { colors, spacing, radius, typography } = useTheme();
 
   if (recommendation.kind === 'day-over') {
@@ -36,10 +50,10 @@ export function RecommendationHero({ recommendation }: RecommendationHeroProps) 
           🌙
         </Text>
         <Text style={[typography.title, { color: colors.textPrimary }]}>
-          {strings.recommendation.dayOverTitle}
+          {resume ? strings.recommendation.routineOverTitle : strings.recommendation.dayOverTitle}
         </Text>
         <Text style={[typography.body, { color: colors.textSecondary }]}>
-          {strings.recommendation.dayOverHint}
+          {resume ? resumeSentence(resume) : strings.recommendation.dayOverHint}
         </Text>
       </View>
     );

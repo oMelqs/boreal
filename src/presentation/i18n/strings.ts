@@ -28,6 +28,13 @@ export const strings = {
       `melhor horário: das ${startHour} às ${endHour} horas`,
     dayOverTitle: 'O dia já está acabando por aí.',
     dayOverHint: 'Amanhã tem mais!',
+    /** Com rotina de sono, o dia acaba na hora de dormir, não no anoitecer. */
+    routineOverTitle: 'Por hoje é isso!',
+    resumesAt: (wakeTime: string) => `Amanhã a partir das ${wakeTime}.`,
+    resumesAtWithPreview: (wakeTime: string, temp: number, rain: string) =>
+      `Amanhã a partir das ${wakeTime}: ${temp} °C, ${rain}.`,
+    previewNoRain: 'sem chuva',
+    previewRain: (prob: number) => `${prob}% de chuva`,
     caveat: (reason: string) =>
       `Hoje não está ideal. Se precisar sair, o horário menos ruim é este — ${reason}.`,
     badge: {
@@ -90,7 +97,10 @@ export const strings = {
       feelsLike: (temp: string) => `sensação ${temp}`,
       rain: (prob: number) => `${prob}% de chuva`,
       bestWindow: (window: string) => `Melhor horário para sair: ${window}`,
+      /** Janela dentro da rotina, mas já no escuro (§6.2). */
+      nightWindow: (window: string) => `Melhor horário para sair: ${window} 🌙 à noite`,
       dayOver: 'O dia já está acabando por aí.',
+      routineOver: 'Por hoje é isso!',
       noReading: 'Sem leitura para agora.',
       cardLabel: (city: string, description: string, temp: string) =>
         `Clima em ${city}: ${description}, ${temp}. Toque para ver os detalhes.`,
