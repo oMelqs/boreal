@@ -10,6 +10,12 @@ export type SuggestOutfitInput = {
   intensity: HabitIntensity;
   /** false → a sugestão vale para o deslocamento (§5.1). */
   outdoor: boolean;
+  /**
+   * Sensibilidade térmica pessoal (§4 das preferências): somado à sensação só
+   * na escolha do nível de agasalho — friorento (−3) veste como se fizesse
+   * 3 °C a menos. Frases e demais regras seguem nas temperaturas reais.
+   */
+  tempOffset?: number;
 };
 
 /** Escala do mais quente ao mais leve; "subir uma faixa" = vestir mais leve. */
@@ -57,13 +63,20 @@ function baseLevelIndex(apparentTemp: number): number {
 /**
  * Ajuste por intensidade (§5.1): intensa sempre sobe uma faixa (o corpo
  * esquenta); moderada só abaixo de 15 °C. Indoor não ajusta — a sugestão é
- * para o deslocamento, não para o esforço.
+ * para o deslocamento, não para o esforço. O `tempOffset` pessoal desloca a
+ * sensação usada na tabela (e na regra da moderada, que é sobre sentir frio).
  */
-function levelFor(apparentTemp: number, intensity: HabitIntensity, outdoor: boolean): OutfitLevel {
-  let index = baseLevelIndex(apparentTemp);
+function levelFor(
+  apparentTemp: number,
+  intensity: HabitIntensity,
+  outdoor: boolean,
+  tempOffset: number,
+): OutfitLevel {
+  const feltTemp = apparentTemp + tempOffset;
+  let index = baseLevelIndex(feltTemp);
   if (outdoor) {
     if (intensity === 'intensa') index += 1;
-    if (intensity === 'moderada' && apparentTemp < 15) index += 1;
+    if (intensity === 'moderada' && feltTemp < 15) index += 1;
   }
   return OUTFIT_LADDER[Math.min(index, OUTFIT_LADDER.length - 1)];
 }
@@ -156,6 +169,7 @@ function buildSummary(
   usesCape: boolean,
 ): string {
   const { atStart, atEnd, intensity, outdoor } = input;
+  const tempOffset = input.tempOffset ?? 0;
   const endTemp = atEnd?.apparentTemp ?? null;
   const rainItem = usesCape ? 'leve capa de chuva' : 'leve guarda-chuva';
 
@@ -168,7 +182,7 @@ function buildSummary(
     const from = Math.round(startTemp);
     const to = Math.round(endTemp);
     if (endTemp < startTemp) {
-      const returnItem = outfitItem(levelFor(endTemp, intensity, outdoor));
+      const returnItem = outfitItem(levelFor(endTemp, intensity, outdoor, tempOffset));
       const framing = startTemp >= 20 ? 'mesmo saindo no calor' : 'para a volta';
       fragments.push(`vai esfriar até a volta (${from} °C → ${to} °C): leve ${returnItem} ${framing}`);
     } else {
@@ -227,7 +241,7 @@ export function suggestOutfit(input: SuggestOutfitInput): ClothingSuggestion | n
   const startTemp = input.atStart.apparentTemp;
   if (startTemp === null) return null;
 
-  const outfit = levelFor(startTemp, input.intensity, input.outdoor);
+  const outfit = levelFor(startTemp, input.intensity, input.outdoor, input.tempOffset ?? 0);
   const { accessories, usesCape } = collectAccessories(input);
 
   return {
