@@ -173,6 +173,84 @@ export const strings = {
     fixedSummary: (start: string, end: string) => `${start}–${end}`,
     flexibleSummary: (duration: string) => `horário livre · ${duration}`,
   },
+  preferences: {
+    openLabel: 'Minhas preferências',
+    thermalTitle: 'Como você se sente em relação ao clima?',
+    thermalHint: 'Isso ajusta o que contamos como um bom horário para você.',
+    preset: {
+      friorento: {
+        emoji: '🧣',
+        label: 'Friorento',
+        hint: 'Sinto frio antes dos outros. 20 °C já pede casaco.',
+      },
+      equilibrado: {
+        emoji: '⚖️',
+        label: 'Equilibrado',
+        hint: 'Nem tanto ao mar, nem tanto à terra.',
+      },
+      calorento: {
+        emoji: '🥵',
+        label: 'Calorento',
+        hint: 'Qualquer sol vira suadeira. Prefiro friozinho.',
+      },
+    },
+    customLink: 'Prefiro definir na mão',
+    tempTitle: 'Qual temperatura é agradável para você?',
+    tempHint: 'Vale para a sensação térmica, não para o número do termômetro.',
+    tempRangeLabel: 'Temperatura agradável',
+    tempRangeValue: (min: number, max: number) => `de ${min} °C a ${max} °C`,
+    /** Leitura em linguagem natural da faixa escolhida (feedback do slider). */
+    tempFeeling: (min: number, max: number) => {
+      const describe = (value: number) => {
+        if (value < 5) return 'frio de rachar';
+        if (value < 12) return 'frio';
+        if (value < 18) return 'friozinho leve';
+        if (value < 24) return 'ameno';
+        if (value < 30) return 'calor moderado';
+        return 'calor forte';
+      };
+      return `de ${describe(min)} a ${describe(max)}`;
+    },
+    humidityTitle: 'A partir de quanto o abafamento te incomoda?',
+    humidityHint: 'Umidade alta pesa mais quando está quente.',
+    humidityLabel: 'Limite de umidade',
+    humidityValue: (value: number) => `${value}%`,
+    humidityFeeling: (value: number) => {
+      if (value <= 55) return 'sou bem sensível a mormaço';
+      if (value <= 70) return 'incomoda no calor úmido';
+      if (value <= 85) return 'só em dia bem abafado';
+      return 'quase nada me abafa';
+    },
+    windTitle: 'E o vento?',
+    windHint: 'Acima do seu limite, o vento começa a descontar pontos.',
+    windLabel: 'Limite de vento',
+    windValue: (value: number) => `${value} km/h`,
+    windFeeling: (value: number) => {
+      if (value <= 12) return 'brisa já incomoda';
+      if (value <= 25) return 'aguento um vento moderado';
+      if (value <= 40) return 'só vento forte atrapalha';
+      return 'só ventania mesmo';
+    },
+    sleepTitle: 'Quer sugestões também à noite?',
+    sleepHint: 'Sugerimos horários dentro da sua rotina acordada.',
+    wakeLabel: 'Acordo às',
+    sleepLabel: 'Durmo às',
+    daylightOnly: 'Usar só horários com luz do dia',
+    daylightOnlyActive: 'Só horários com luz do dia',
+    useSleepRoutine: 'Definir minha rotina',
+    crossMidnightNotice: 'Sua noite vira o dia seguinte — consideramos isso.',
+    reviewTitle: 'Tudo certo com seu perfil?',
+    reviewHint: 'Dá para mudar quando quiser.',
+    profileCardLabel: 'Perfil',
+    awakeCardLabel: 'Acordado',
+    /** "Calorento · 15–23 °C" / "Personalizado · 24–30 °C". */
+    profileSummary: (name: string, min: number, max: number) =>
+      `${name} · ${min}–${max} °C`,
+    customName: 'Personalizado',
+    awakeSummary: (wake: string, sleep: string) => `${wake} às ${sleep}`,
+    awakeDaylight: 'Só com luz do dia',
+    save: 'Salvar preferências',
+  },
   errors: {
     network: 'Sem conexão com a internet. Verifique sua rede e tente de novo.',
     api: 'O serviço de clima está indisponível agora. Tente de novo em instantes.',

@@ -28,7 +28,7 @@ export function HabitsStepScreen() {
 
   return (
     <OnboardingShell
-      header={<StepHeader step={2} total={3} onBack={() => router.back()} />}
+      header={<StepHeader step={4} total={5} onBack={() => router.back()} />}
       footer={
         <Button label={strings.onboarding.next} onPress={() => router.push('/onboarding/review')} />
       }

@@ -68,7 +68,20 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
             ) : null}
           </View>
           <View style={styles.headerLinks}>
-            <ThemeToggle />
+            <View style={styles.headerIcons}>
+              <ThemeToggle />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={strings.preferences.openLabel}
+                onPress={() => router.push('/preferences')}
+                style={[
+                  styles.iconButton,
+                  { minHeight: minTouchTarget, minWidth: minTouchTarget },
+                ]}
+              >
+                <Text style={styles.icon}>⚙️</Text>
+              </Pressable>
+            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={strings.today.manageHabits}
@@ -188,9 +201,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  headerIcons: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
   headerLinks: {
     alignItems: 'flex-end',
     gap: 2,
+  },
+  icon: {
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  iconButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerText: {
     flex: 1,

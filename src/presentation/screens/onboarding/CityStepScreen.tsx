@@ -40,7 +40,7 @@ export function CityStepScreen({ searchDebounceMs, standalone = false }: CitySte
     if (standalone) {
       router.back();
     } else {
-      router.push('/onboarding/habits');
+      router.push('/onboarding/comfort');
     }
   }
 
@@ -50,7 +50,7 @@ export function CityStepScreen({ searchDebounceMs, standalone = false }: CitySte
         standalone ? (
           <StepHeader step={1} total={1} onBack={() => router.back()} />
         ) : (
-          <StepHeader step={1} total={3} onBack={() => router.back()} />
+          <StepHeader step={1} total={5} onBack={() => router.back()} />
         )
       }
     >
