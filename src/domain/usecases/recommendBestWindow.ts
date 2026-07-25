@@ -1,6 +1,8 @@
 import { labelForScore } from '../entities/comfortScore';
 import type { HourlyForecast } from '../entities/hourlyForecast';
+import type { SleepSchedule } from '../entities/preferences';
 import type { Recommendation } from '../entities/recommendation';
+import { currentAwakeCycle, isWithinAwakeCycle } from './awakeWindow';
 import type {
   ComfortBreakdown,
   ComfortInputs,
@@ -8,6 +10,7 @@ import type {
   ComfortScoringParams,
 } from './computeComfortScore';
 import { computeComfortBreakdown, DEFAULT_COMFORT_PARAMS } from './computeComfortScore';
+import { sameLocalDay } from './localDay';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -29,6 +32,12 @@ export type ScoringProfile = ComfortScoringParams & {
    * `latest` (início + 1h ≤ latest).
    */
   bounds?: { earliest?: string; latest?: string };
+  /**
+   * Rotina de sono (§6.1): presente, a elegibilidade passa do gate `isDay`
+   * para a janela acordada [acordar, dormir) — a noite entra no jogo, inclusive
+   * cruzando meia-noite. Ausente, comportamento legado por `isDay`.
+   */
+  sleep?: SleepSchedule;
 };
 
 /** Comportamento original do app (tela de recomendação genérica). */
@@ -61,16 +70,18 @@ type WindowCandidate = {
 
 /**
  * Recomenda a melhor janela contígua de 2–3h para sair, considerando apenas
- * horas futuras do dia local (a partir da hora atual, inclusive), de dia
- * (`isDay`) e com dados completos.
+ * horas futuras elegíveis (a partir da hora atual, inclusive) com dados
+ * completos. Elegível = de dia (`isDay`) ou, com rotina de sono no perfil,
+ * dentro do ciclo acordado corrente (§6.1) — que pode avançar noite adentro.
  *
  * `hours` e `now` devem estar no MESMO referencial de tempo (o wall-clock da
  * cidade consultada) — o motor só compara instantes, sem depender do timezone
  * do device.
  *
  * Guardas:
- * - Sem horas de dia restantes (ou menos que a janela mínima) → `day-over`.
- * - Havia horas de dia restantes, mas todas sem dados utilizáveis → `no-data`.
+ * - Sem horas elegíveis restantes (dia acabou / já passou da hora de dormir)
+ *   → `day-over`.
+ * - Havia horas elegíveis, mas todas sem dados utilizáveis → `no-data`.
  * - Melhor média < 40 → recomenda mesmo assim, com `caveat` do motivo dominante.
  */
 export function recommendBestWindow(
@@ -83,12 +94,14 @@ export function recommendBestWindow(
     .filter((hour) => hour.time.getTime() >= currentHourStart)
     .sort((a, b) => a.time.getTime() - b.time.getTime());
 
-  const daylight = future.filter((hour) => hour.isDay);
-  if (daylight.length === 0) {
+  const awake = profile.sleep
+    ? awakeHours(future, now, profile.sleep)
+    : future.filter((hour) => hour.isDay);
+  if (awake.length === 0) {
     return { kind: 'day-over' };
   }
 
-  const bounded = daylight.filter((hour) => withinBounds(hour.time, profile.bounds));
+  const bounded = awake.filter((hour) => withinBounds(hour.time, profile.bounds));
   if (bounded.length === 0) {
     // Havia dia pela frente, mas as restrições do hábito não deixam janela.
     return { kind: 'day-over' };
@@ -110,7 +123,10 @@ export function recommendBestWindow(
 
   const lastHour = best.hours[best.hours.length - 1].hour;
   const value = best.average;
-  const reasons = buildReasons(best, profile);
+  // Janela avançando pela noite é escolha explícita da pessoa (§6.2): a frase
+  // dá o contexto, sem penalidade de escuridão no score.
+  const hasNightHours = best.hours.some((scored) => !scored.hour.isDay);
+  const reasons = [...(hasNightHours ? ['já de noite'] : []), ...buildReasons(best, profile)];
 
   return {
     kind: 'window',
@@ -120,6 +136,23 @@ export function recommendBestWindow(
     reasons,
     ...(value < LOW_SCORE_THRESHOLD ? { caveat: dominantReason(best, profile) } : {}),
   };
+}
+
+/**
+ * Horas do ciclo acordado corrente. Ciclo começando em outro dia local
+ * (a pessoa já foi dormir e o próximo acordar é amanhã) = a janela acordada
+ * de hoje acabou → lista vazia, que vira a guarda `day-over`.
+ */
+function awakeHours(
+  future: HourlyForecast[],
+  now: Date,
+  sleep: SleepSchedule,
+): HourlyForecast[] {
+  const cycle = currentAwakeCycle(now, sleep);
+  if (cycle.start.getTime() > now.getTime() && !sameLocalDay(cycle.start, now)) {
+    return [];
+  }
+  return future.filter((hour) => isWithinAwakeCycle(hour.time, cycle));
 }
 
 /** "HH:mm" → minutos desde a meia-noite local. */

@@ -5,10 +5,14 @@ import { useContainer } from '@/di/ContainerProvider';
 import type { City } from '@/domain/entities/city';
 import type { ComfortScore } from '@/domain/entities/comfortScore';
 import type { HourlyForecast } from '@/domain/entities/hourlyForecast';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import type { Recommendation } from '@/domain/entities/recommendation';
-import { computeComfortScore } from '@/domain/usecases/computeComfortScore';
+import type { ComfortScoringParams } from '@/domain/usecases/computeComfortScore';
+import { computeComfortScore, DEFAULT_COMFORT_PARAMS } from '@/domain/usecases/computeComfortScore';
 import { splitByLocalDay } from '@/domain/usecases/localDay';
-import { recommendBestWindow } from '@/domain/usecases/recommendBestWindow';
+import type { ScoringProfile } from '@/domain/usecases/recommendBestWindow';
+import { DEFAULT_SCORING_PROFILE, recommendBestWindow } from '@/domain/usecases/recommendBestWindow';
+import { resolveComfortProfile } from '@/domain/usecases/resolveComfortProfile';
 import { mapErrorToMessage } from '@/presentation/i18n/errorMessages';
 
 /** Forecast fica fresco por 5 minutos (§4.3). */
@@ -56,6 +60,7 @@ export function buildTimeline(
   hours: HourlyForecast[],
   now: Date,
   recommendation: Recommendation,
+  params: ComfortScoringParams = DEFAULT_COMFORT_PARAMS,
 ): TimelineHour[] {
   const currentHourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const window = recommendation.kind === 'window' ? recommendation : null;
@@ -68,7 +73,7 @@ export function buildTimeline(
       temp: hour.temp,
       weatherCode: hour.weatherCode,
       isDay: hour.isDay,
-      score: computeComfortScore(hour),
+      score: computeComfortScore(hour, params),
       isNow: hour.time.getTime() === currentHourStart,
       inWindow:
         window !== null &&
@@ -134,17 +139,29 @@ export function useRecommendation(city: City, options: Options = {}): Recommenda
     };
   }
 
+  // Perfil pessoal puro (§4.3): a recomendação genérica não tem intensidade.
+  // DEFAULT até a persistência v2 chegar (equivale ao comportamento atual).
+  const preferences = DEFAULT_USER_PREFERENCES;
+  const profile = resolveComfortProfile(preferences);
+  const scoringProfile: ScoringProfile = {
+    ...DEFAULT_SCORING_PROFILE,
+    ...profile,
+    ...(preferences.sleep !== undefined ? { sleep: preferences.sleep } : {}),
+  };
+
   const now = options.now ?? nowInTimezone(city.timezone);
-  // Cerca do dia local: o forecast agora traz 2 dias (hábitos), mas esta
-  // tela é sobre HOJE — sem o recorte, o motor genérico recomendaria amanhã
+  // Cerca do "hoje": com rotina de sono, o ciclo acordado (que pode cruzar a
+  // meia-noite) — o motor recorta. Sem rotina, o dia local: o forecast traz
+  // 2 dias (hábitos) e, sem o recorte, o motor genérico recomendaria amanhã
   // de manhã em vez do guard "dia acabou" (§5.2 do SPECS original).
-  const hours = splitByLocalDay(query.data, now).today;
-  const recommendation = recommendBestWindow(hours, now);
+  const hours =
+    preferences.sleep !== undefined ? query.data : splitByLocalDay(query.data, now).today;
+  const recommendation = recommendBestWindow(hours, now, scoringProfile);
 
   return {
     status: 'success',
     recommendation,
-    timeline: buildTimeline(hours, now, recommendation),
+    timeline: buildTimeline(hours, now, recommendation, profile),
     windowDetails: buildWindowDetails(hours, recommendation),
     refresh: () =>
       void queryClient.invalidateQueries({ queryKey: ['forecast', city.id] }),

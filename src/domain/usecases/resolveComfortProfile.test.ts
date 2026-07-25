@@ -1,8 +1,33 @@
 import type { UserPreferences } from '../entities/preferences';
 import { DEFAULT_USER_PREFERENCES } from '../entities/preferences';
 import { DEFAULT_COMFORT_PARAMS } from './computeComfortScore';
-import { INTENSITY_PROFILES } from './habitScoringProfiles';
 import { resolveComfortProfile } from './resolveComfortProfile';
+
+/**
+ * Oráculo de regressão: os perfis absolutos por intensidade do SPECS-HABITS
+ * §6, como existiam antes do refactor — a composição preferências × intensidade
+ * precisa reproduzi-los exatamente para o preset equilibrado.
+ */
+const LEGACY_INTENSITY_PROFILES = {
+  leve: {
+    idealTempRange: [16, 26],
+    tempPenaltyPerDegree: 4,
+    uvWeight: 'alto',
+    windToleranceKmh: 15,
+  },
+  moderada: {
+    idealTempRange: [15, 24],
+    tempPenaltyPerDegree: 4,
+    uvWeight: 'alto',
+    windToleranceKmh: 20,
+  },
+  intensa: {
+    idealTempRange: [10, 20],
+    tempPenaltyPerDegree: 4,
+    uvWeight: 'alto',
+    windToleranceKmh: 25,
+  },
+} as const;
 
 function preset(name: 'friorento' | 'equilibrado' | 'calorento'): UserPreferences {
   return { comfort: { kind: 'preset', preset: name } };
@@ -77,7 +102,7 @@ describe('resolveComfortProfile — composição com intensidade (§4.3)', () =>
     'equilibrado + %s reproduz exatamente o perfil antigo por intensidade',
     (intensity) => {
       const profile = resolveComfortProfile(DEFAULT_USER_PREFERENCES, intensity);
-      expect(profile).toMatchObject(INTENSITY_PROFILES[intensity]);
+      expect(profile).toMatchObject(LEGACY_INTENSITY_PROFILES[intensity]);
     },
   );
 
