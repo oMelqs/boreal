@@ -150,7 +150,7 @@ function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) 
             <ErrorState message={strings.errors.forecastNoData} onRetry={vm.refresh} />
           ) : (
             <Animated.View style={[{ gap: spacing.xl }, entryStyle]}>
-              <RecommendationHero recommendation={vm.recommendation} />
+              <RecommendationHero recommendation={vm.recommendation} resume={vm.resume} />
               {vm.timeline.length > 0 && (
                 <View style={{ gap: spacing.sm }}>
                   <Text
@@ -158,7 +158,7 @@ function CityContent({ city, nowOverride }: { city: City; nowOverride?: Date }) 
                   >
                     {strings.recommendation.timelineTitle}
                   </Text>
-                  <HourlyTimeline hours={vm.timeline} />
+                  <HourlyTimeline hours={vm.timeline} nightEligible={vm.nightEligible} />
                 </View>
               )}
               {vm.windowDetails && (
