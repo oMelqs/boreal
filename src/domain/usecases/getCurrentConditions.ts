@@ -1,6 +1,7 @@
 import type { CurrentConditions } from '../entities/currentConditions';
 import type { HourlyForecast } from '../entities/hourlyForecast';
-import { computeComfortScore } from './computeComfortScore';
+import type { ComfortScoringParams } from './computeComfortScore';
+import { computeComfortScore, DEFAULT_COMFORT_PARAMS } from './computeComfortScore';
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -16,9 +17,10 @@ const HOUR_MS = 60 * 60 * 1000;
 export function getCurrentConditions(
   hours: readonly HourlyForecast[],
   now: Date,
+  params: ComfortScoringParams = DEFAULT_COMFORT_PARAMS,
 ): CurrentConditions | null {
   const currentHourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const hour = hours.find((h) => h.time.getTime() === currentHourStart);
   if (hour === undefined) return null;
-  return { hour, score: computeComfortScore(hour) };
+  return { hour, score: computeComfortScore(hour, params) };
 }

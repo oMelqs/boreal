@@ -7,11 +7,13 @@ import type { City } from '@/domain/entities/city';
 import type { HabitSuggestion } from '@/domain/entities/clothing';
 import type { CurrentConditions } from '@/domain/entities/currentConditions';
 import type { HourlyForecast } from '@/domain/entities/hourlyForecast';
+import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import type { Recommendation } from '@/domain/entities/recommendation';
 import { getCurrentConditions } from '@/domain/usecases/getCurrentConditions';
 import { getTodaySuggestions } from '@/domain/usecases/getTodaySuggestions';
 import { splitByLocalDay } from '@/domain/usecases/localDay';
-import { recommendBestWindow } from '@/domain/usecases/recommendBestWindow';
+import { DEFAULT_SCORING_PROFILE, recommendBestWindow } from '@/domain/usecases/recommendBestWindow';
+import { resolveComfortProfile } from '@/domain/usecases/resolveComfortProfile';
 import { mapErrorToMessage } from '@/presentation/i18n/errorMessages';
 
 import { useResolvedCity } from './useResolvedCity';
@@ -108,12 +110,23 @@ export function useTodaySuggestions(options: Options = {}): TodaySuggestionsView
     };
   }
 
+  // Perfil pessoal (§4): DEFAULT até a persistência v2 chegar — equivale ao
+  // comportamento atual. O card de clima usa o perfil puro, sem intensidade.
+  const preferences = DEFAULT_USER_PREFERENCES;
+  const profile = resolveComfortProfile(preferences);
+
   const hours = forecastQuery.data;
   const now = options.now ?? nowInTimezone(city.timezone);
   const todayHours = splitByLocalDay(hours, now).today;
+  // Com rotina de sono, o "hoje" do card é o ciclo acordado — o motor recorta.
+  const panelHours = preferences.sleep !== undefined ? hours : todayHours;
   const weather: PanelWeather = {
-    current: getCurrentConditions(todayHours, now),
-    bestWindow: recommendBestWindow(todayHours, now),
+    current: getCurrentConditions(todayHours, now, profile),
+    bestWindow: recommendBestWindow(panelHours, now, {
+      ...DEFAULT_SCORING_PROFILE,
+      ...profile,
+      ...(preferences.sleep !== undefined ? { sleep: preferences.sleep } : {}),
+    }),
   };
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['forecast', city.id] });
 
@@ -133,7 +146,7 @@ export function useTodaySuggestions(options: Options = {}): TodaySuggestionsView
     status: 'ready',
     city,
     now,
-    suggestions: getTodaySuggestions(habits, hours, now),
+    suggestions: getTodaySuggestions(habits, hours, now, preferences),
     todayHours,
     weather,
     refresh,

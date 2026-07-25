@@ -34,6 +34,8 @@ describe('getTodaySuggestions com preferências (§6.2)', () => {
     if (suggestions[0].kind !== 'window') return;
     expect(suggestions[0].when).toBe('hoje');
     // Único slot restante do ciclo: 00h–01h de quinta.
+    expect(suggestions[0].recommendation.kind).toBe('window');
+    if (suggestions[0].recommendation.kind !== 'window') return;
     expect(suggestions[0].recommendation.start).toEqual(atHour(24));
   });
 
