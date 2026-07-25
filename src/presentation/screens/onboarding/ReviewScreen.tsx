@@ -4,12 +4,16 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useContainer } from '@/di/ContainerProvider';
-import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { Button } from '@/presentation/components/Button';
 import { StepHeader } from '@/presentation/components/StepHeader';
 import { useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { usePreferences } from '@/presentation/hooks/usePreferences';
+import { draftToPreferences, usePreferencesForm } from '@/presentation/hooks/usePreferencesForm';
 import { strings } from '@/presentation/i18n/strings';
+import {
+  comfortSummary,
+  sleepSummary,
+} from '@/presentation/screens/preferences/preferencesSummary';
 import { useTheme } from '@/presentation/theme/useTheme';
 
 import { habitScheduleSummary } from './habitSummary';
@@ -22,7 +26,11 @@ export function ReviewScreen() {
   const { colors, typography, spacing, radius } = useTheme();
   const { habits, city, editHabit, removeHabit, reset } = useOnboarding();
   const { preferences, savePreferences } = usePreferences();
+  const draft = usePreferencesForm((state) => state.draft);
+  const resetForm = usePreferencesForm((state) => state.reset);
   const [saving, setSaving] = useState(false);
+
+  const comfortProfile = draftToPreferences(draft);
 
   async function finish() {
     setSaving(true);
@@ -33,10 +41,11 @@ export function ReviewScreen() {
       await savePreferences({
         defaultCity: city ?? preferences?.defaultCity ?? null,
         onboardingDone: true,
-        preferences: preferences?.preferences ?? DEFAULT_USER_PREFERENCES,
+        preferences: comfortProfile,
       });
       await queryClient.invalidateQueries({ queryKey: ['habits'] });
       reset();
+      resetForm();
       router.replace('/');
     } finally {
       setSaving(false);
@@ -45,7 +54,7 @@ export function ReviewScreen() {
 
   return (
     <OnboardingShell
-      header={<StepHeader step={3} total={3} onBack={() => router.back()} />}
+      header={<StepHeader step={5} total={5} onBack={() => router.back()} />}
       footer={<Button disabled={saving} label={strings.onboarding.finish} onPress={finish} />}
     >
       <View style={{ gap: spacing.xs }}>
@@ -55,6 +64,33 @@ export function ReviewScreen() {
         <Text style={[typography.body, { color: colors.textSecondary }]}>
           {habits.length > 0 ? strings.onboarding.reviewHint : strings.onboarding.reviewEmpty}
         </Text>
+      </View>
+
+      <View style={[styles.summaryRow, { gap: spacing.md }]}>
+        {[
+          { label: strings.preferences.profileCardLabel, value: comfortSummary(comfortProfile) },
+          { label: strings.preferences.awakeCardLabel, value: sleepSummary(comfortProfile) },
+        ].map((item) => (
+          <View
+            key={item.label}
+            style={[
+              styles.card,
+              styles.summaryCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.surfaceBorder,
+                borderRadius: radius.md,
+                gap: 2,
+                padding: spacing.lg,
+              },
+            ]}
+          >
+            <Text style={[typography.label, styles.uppercase, { color: colors.textSecondary }]}>
+              {item.label}
+            </Text>
+            <Text style={[typography.body, { color: colors.textPrimary }]}>{item.value}</Text>
+          </View>
+        ))}
       </View>
 
       {habits.map((habit) => (
@@ -116,5 +152,14 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
+  },
+  summaryCard: {
+    flex: 1,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+  },
+  uppercase: {
+    textTransform: 'uppercase',
   },
 });
