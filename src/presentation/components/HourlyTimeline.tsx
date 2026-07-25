@@ -11,10 +11,12 @@ const BAR_MAX_HEIGHT = 36;
 const CELL_WIDTH = 76;
 const CELL_GAP = 8;
 
-function hourA11yLabel(hour: TimelineHour): string {
+function hourA11yLabel(hour: TimelineHour, nightEligible: boolean): string {
   const time = formatHour(hour.time);
   if (hour.score === null) return strings.recommendation.timeline.noDataA11y(time);
-  if (!hour.isDay) return strings.recommendation.timeline.nightA11y(time);
+  // Sem rotina, a noite é inelegível e basta anunciá-la como tal; com rotina,
+  // ela concorre como qualquer hora e merece temperatura e score.
+  if (!hour.isDay && !nightEligible) return strings.recommendation.timeline.nightA11y(time);
   return strings.recommendation.timeline.hourA11y(
     time,
     String(Math.round(hour.temp ?? 0)),
@@ -22,25 +24,29 @@ function hourA11yLabel(hour: TimelineHour): string {
   );
 }
 
-function HourCell({ hour }: { hour: TimelineHour }) {
+function HourCell({ hour, nightEligible }: { hour: TimelineHour; nightEligible: boolean }) {
   const { colors, spacing, radius, typography } = useTheme();
   const barColor = hour.score ? colors.score[hour.score.label] : colors.surfaceBorder;
   const barHeight = hour.score
     ? Math.max(4, Math.round((hour.score.value / 100) * BAR_MAX_HEIGHT))
     : 4;
+  // Com rotina de sono a noite é sugerível: em vez de apagar a célula (o que
+  // dizia "não conte com esta hora"), ela só ganha um fundo mais escuro.
+  const isNight = !hour.isDay;
+  const dimmed = isNight && !nightEligible;
 
   return (
     <View
       accessible
-      accessibilityLabel={hourA11yLabel(hour)}
+      accessibilityLabel={hourA11yLabel(hour, nightEligible)}
       style={[
         styles.cell,
         {
-          backgroundColor: colors.surface,
+          backgroundColor: isNight && nightEligible ? colors.background : colors.surface,
           borderColor: hour.inWindow ? colors.accent : colors.surfaceBorder,
           borderRadius: radius.md,
           borderWidth: hour.inWindow ? 2 : 1,
-          opacity: hour.isDay ? 1 : 0.55,
+          opacity: dimmed ? 0.55 : 1,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
         },
@@ -77,11 +83,17 @@ function HourCell({ hour }: { hour: TimelineHour }) {
   );
 }
 
+type HourlyTimelineProps = {
+  hours: TimelineHour[];
+  /** Com rotina de sono, as horas noturnas são sugeríveis (§6.3). */
+  nightEligible?: boolean;
+};
+
 /**
  * Bloco 2 (§6.2): contexto visual da recomendação, hora a hora. Abre já
  * posicionada na janela recomendada (uma célula antes, para dar contexto).
  */
-export function HourlyTimeline({ hours }: { hours: TimelineHour[] }) {
+export function HourlyTimeline({ hours, nightEligible = false }: HourlyTimelineProps) {
   const { spacing, scheme } = useTheme();
   const windowIndex = hours.findIndex((hour) => hour.inWindow);
   const initialIndex = windowIndex > 0 ? windowIndex - 1 : 0;
@@ -90,7 +102,7 @@ export function HourlyTimeline({ hours }: { hours: TimelineHour[] }) {
     <FlatList
       contentContainerStyle={{ gap: CELL_GAP, paddingVertical: spacing.xs }}
       data={hours}
-      extraData={scheme}
+      extraData={`${scheme}-${nightEligible}`}
       getItemLayout={(_data, index) => ({
         length: CELL_WIDTH,
         offset: (CELL_WIDTH + CELL_GAP) * index,
@@ -99,7 +111,7 @@ export function HourlyTimeline({ hours }: { hours: TimelineHour[] }) {
       horizontal
       initialScrollIndex={initialIndex}
       keyExtractor={(hour) => hour.time.toISOString()}
-      renderItem={({ item }) => <HourCell hour={item} />}
+      renderItem={({ item }) => <HourCell hour={item} nightEligible={nightEligible} />}
       showsHorizontalScrollIndicator={false}
     />
   );

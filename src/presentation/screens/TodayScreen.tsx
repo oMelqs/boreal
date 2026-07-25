@@ -145,6 +145,7 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
           <View style={{ gap: spacing.lg }}>
             <WeatherCard
               city={vm.city}
+              hasSleepRoutine={vm.weather.hasSleepRoutine}
               weather={vm.weather}
               onPress={() => openCityDetail(vm.city)}
             />
@@ -166,6 +167,7 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
           <>
             <WeatherCard
               city={vm.city}
+              hasSleepRoutine={vm.weather.hasSleepRoutine}
               weather={vm.weather}
               onPress={() => openCityDetail(vm.city)}
             />

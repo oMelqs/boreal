@@ -14,14 +14,26 @@ type WeatherCardProps = {
   weather: PanelWeather;
   /** Abre a tela de detalhes (recomendação da cidade). */
   onPress: () => void;
+  /** Com rotina de sono, o fim do dia é a hora de dormir (§6.2). */
+  hasSleepRoutine?: boolean;
 };
+
+/** A janela é noturna quando o motor a explicou como tal. */
+function isNightWindow(bestWindow: PanelWeather['bestWindow']): boolean {
+  return bestWindow.kind === 'window' && bestWindow.reasons.includes('já de noite');
+}
 
 /**
  * Card de clima da home: condição de agora da cidade + teaser do melhor
  * horário para sair. Sempre visível quando há cidade (mesmo sem hábitos);
  * toque leva à tela de detalhes (`/city/[id]`).
  */
-export function WeatherCard({ city, weather, onPress }: WeatherCardProps) {
+export function WeatherCard({
+  city,
+  weather,
+  onPress,
+  hasSleepRoutine = false,
+}: WeatherCardProps) {
   const { colors, spacing, radius, typography, minTouchTarget } = useTheme();
   const { current, bestWindow } = weather;
 
@@ -71,11 +83,17 @@ export function WeatherCard({ city, weather, onPress }: WeatherCardProps) {
       <View style={{ gap: spacing.sm }}>
         {bestWindow.kind === 'window' ? (
           <Text style={[typography.caption, { color: colors.textSecondary }]}>
-            {strings.today.weather.bestWindow(formatWindow(bestWindow.start, bestWindow.end))}
+            {(isNightWindow(bestWindow)
+              ? strings.today.weather.nightWindow
+              : strings.today.weather.bestWindow)(
+              formatWindow(bestWindow.start, bestWindow.end),
+            )}
           </Text>
         ) : bestWindow.kind === 'day-over' ? (
           <Text style={[typography.caption, { color: colors.textSecondary }]}>
-            {strings.today.weather.dayOver}
+            {hasSleepRoutine
+              ? strings.today.weather.routineOver
+              : strings.today.weather.dayOver}
           </Text>
         ) : null}
         {/* Badge e "ver detalhes" numa linha curta própria → alinham entre si

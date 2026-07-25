@@ -26,6 +26,8 @@ const FORECAST_STALE_TIME_MS = 5 * 60 * 1000;
 export type PanelWeather = {
   current: CurrentConditions | null;
   bestWindow: Recommendation;
+  /** Com rotina de sono, o dia acaba na hora de dormir, não no anoitecer. */
+  hasSleepRoutine: boolean;
 };
 
 export type TodaySuggestionsViewModel =
@@ -129,6 +131,7 @@ export function useTodaySuggestions(options: Options = {}): TodaySuggestionsView
       ...profile,
       ...(preferences.sleep !== undefined ? { sleep: preferences.sleep } : {}),
     }),
+    hasSleepRoutine: preferences.sleep !== undefined,
   };
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['forecast', city.id] });
 

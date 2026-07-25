@@ -26,6 +26,7 @@ const windowWeather: PanelWeather = {
     averageScore: { value: 80, label: 'otimo' },
     reasons: ['temperatura agradável (24 °C)'],
   },
+  hasSleepRoutine: false,
 };
 
 describe('WeatherCard', () => {
@@ -43,7 +44,11 @@ describe('WeatherCard', () => {
   });
 
   it('sem leitura de agora usa texto neutro e a nota de dia acabando', async () => {
-    const weather: PanelWeather = { current: null, bestWindow: { kind: 'day-over' } };
+    const weather: PanelWeather = {
+      current: null,
+      bestWindow: { kind: 'day-over' },
+      hasSleepRoutine: false,
+    };
     await render(<WeatherCard city={joinville} weather={weather} onPress={jest.fn()} />);
 
     expect(await screen.findByText(strings.today.weather.noReading)).toBeOnTheScreen();

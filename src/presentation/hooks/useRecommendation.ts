@@ -5,8 +5,12 @@ import { useContainer } from '@/di/ContainerProvider';
 import type { City } from '@/domain/entities/city';
 import type { ComfortScore } from '@/domain/entities/comfortScore';
 import type { HourlyForecast } from '@/domain/entities/hourlyForecast';
+import type { SleepSchedule } from '@/domain/entities/preferences';
 import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import type { Recommendation } from '@/domain/entities/recommendation';
+import { currentAwakeCycle, isWithinAwakeCycle } from '@/domain/usecases/awakeWindow';
+import type { NextCyclePreview } from '@/domain/usecases/nextCyclePreview';
+import { nextCyclePreview } from '@/domain/usecases/nextCyclePreview';
 import type { ComfortScoringParams } from '@/domain/usecases/computeComfortScore';
 import { computeComfortScore, DEFAULT_COMFORT_PARAMS } from '@/domain/usecases/computeComfortScore';
 import { splitByLocalDay } from '@/domain/usecases/localDay';
@@ -40,6 +44,14 @@ export type WindowDetails = {
   maxUv: number;
 };
 
+/** Quando as sugestões voltam, para a guarda de fim de dia (§6.2). */
+export type ResumeInfo = {
+  /** "HH:mm" em que a pessoa acorda. */
+  wakeTime: string;
+  /** Números da primeira hora aproveitável; null se o forecast não alcança. */
+  preview: NextCyclePreview | null;
+};
+
 export type RecommendationViewModel =
   | { status: 'loading' }
   | { status: 'error'; errorMessage: string; retry: () => void }
@@ -48,6 +60,10 @@ export type RecommendationViewModel =
       recommendation: Recommendation;
       timeline: TimelineHour[];
       windowDetails: WindowDetails | null;
+      /** Presente só com rotina de sono configurada. */
+      resume: ResumeInfo | null;
+      /** Com rotina, a noite é uma opção legítima e não deve parecer apagada. */
+      nightEligible: boolean;
       refresh: () => void;
       isRefreshing: boolean;
     };
@@ -57,18 +73,26 @@ type Options = {
   now?: Date;
 };
 
-/** Também usada pelos cards do painel Hoje (timeline expansível por hábito). */
+/**
+ * Também usada pelos cards do painel Hoje (timeline expansível por hábito).
+ * Com rotina de sono, mostra as horas restantes do ciclo acordado (a noite
+ * entra, e a madrugada de quem já dormiu não aparece); sem rotina, o restante
+ * do dia local, como antes.
+ */
 export function buildTimeline(
   hours: HourlyForecast[],
   now: Date,
   recommendation: Recommendation,
   params: ComfortScoringParams = DEFAULT_COMFORT_PARAMS,
+  sleep?: SleepSchedule,
 ): TimelineHour[] {
   const currentHourStart = Math.floor(now.getTime() / HOUR_MS) * HOUR_MS;
   const window = recommendation.kind === 'window' ? recommendation : null;
+  const cycle = sleep ? currentAwakeCycle(now, sleep) : null;
 
   return hours
     .filter((hour) => hour.time.getTime() >= currentHourStart)
+    .filter((hour) => cycle === null || isWithinAwakeCycle(hour.time, cycle))
     .sort((a, b) => a.time.getTime() - b.time.getTime())
     .map((hour) => ({
       time: hour.time,
@@ -161,11 +185,20 @@ export function useRecommendation(city: City, options: Options = {}): Recommenda
     preferences.sleep !== undefined ? query.data : splitByLocalDay(query.data, now).today;
   const recommendation = recommendBestWindow(hours, now, scoringProfile);
 
+  const sleep = preferences.sleep;
+
   return {
     status: 'success',
     recommendation,
-    timeline: buildTimeline(hours, now, recommendation, profile),
+    timeline: buildTimeline(hours, now, recommendation, profile, sleep),
     windowDetails: buildWindowDetails(hours, recommendation),
+    resume: sleep
+      ? {
+          wakeTime: sleep.wakeTime,
+          preview: nextCyclePreview({ hours: query.data, now, sleep, params: profile }),
+        }
+      : null,
+    nightEligible: sleep !== undefined,
     refresh: () =>
       void queryClient.invalidateQueries({ queryKey: ['forecast', city.id] }),
     isRefreshing: query.isRefetching,
