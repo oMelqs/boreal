@@ -154,7 +154,10 @@ export function NumericStepperInput({
             style={[typography.title, styles.input, { color: colors.textPrimary }]}
             value={text}
           />
-          <Text style={[typography.body, { color: colors.textSecondary }]}>{unit}</Text>
+          {/* A unidade nunca cede espaço: é ela que dá sentido ao número. */}
+          <Text style={[typography.body, styles.unit, { color: colors.textSecondary }]}>
+            {unit}
+          </Text>
         </View>
         {stepperButton('increase')}
       </View>
@@ -186,7 +189,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   input: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 24,
   },
   row: {
     alignItems: 'center',
@@ -195,7 +200,11 @@ const styles = StyleSheet.create({
   stepper: {
     alignItems: 'center',
     borderWidth: 1,
+    flexShrink: 0,
     justifyContent: 'center',
+  },
+  unit: {
+    flexShrink: 0,
   },
   uppercase: {
     textTransform: 'uppercase',

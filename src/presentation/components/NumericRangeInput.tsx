@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { strings } from '@/presentation/i18n/strings';
 import { useTheme } from '@/presentation/theme/useTheme';
@@ -39,8 +39,10 @@ export function NumericRangeInput({
 
   return (
     <View style={{ gap: spacing.sm }}>
-      <View style={[styles.row, { gap: spacing.md }]}>
-        <View style={styles.field}>
+      {/* Empilhados: dois grupos [−][valor][+] lado a lado espremem a unidade
+          fora da tela em larguras de celular. */}
+      <View style={{ gap: spacing.md }}>
+        <View>
           <NumericStepperInput
             accessibilityLabel={copy.tempMinLabel}
             fieldName={copy.tempMinField}
@@ -53,7 +55,7 @@ export function NumericRangeInput({
             value={low}
           />
         </View>
-        <View style={styles.field}>
+        <View>
           <NumericStepperInput
             accessibilityLabel={copy.tempMaxLabel}
             fieldName={copy.tempMaxField}
@@ -81,12 +83,3 @@ export function NumericRangeInput({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  field: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-  },
-});

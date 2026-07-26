@@ -6,7 +6,7 @@ import { usePreferencesForm } from '@/presentation/hooks/usePreferencesForm';
 import { strings } from '@/presentation/i18n/strings';
 import { createFakeContainer, createProvidersWrapper, joinville } from '@/presentation/testing/providers';
 
-import { ComfortSliderScreen } from './ComfortSliderScreen';
+import { ComfortFieldScreen } from './ComfortFieldScreen';
 import { PreferencesEntryScreen } from './PreferencesEntryScreen';
 import { PreferencesReviewScreen } from './PreferencesReviewScreen';
 import { SleepStepScreen } from './SleepStepScreen';
@@ -84,11 +84,20 @@ describe('fluxo de preferências', () => {
     ['wind', '/onboarding/sleep'],
   ] as const)('a sub-etapa de %s avança para %s', async (field, destination) => {
     const user = userEvent.setup();
-    await renderWith(<ComfortSliderScreen field={field} />);
+    await renderWith(<ComfortFieldScreen field={field} />);
 
     await user.press(await screen.findByRole('button', { name: strings.onboarding.next }));
 
     expect(mockPush).toHaveBeenLastCalledWith(destination);
+  });
+
+  it('faixa com menos de 4 °C bloqueia o avanço com a mensagem do domínio (§10)', async () => {
+    usePreferencesForm.getState().update({ kind: 'custom', tempMin: 20, tempMax: 22 });
+    await renderWith(<ComfortFieldScreen field="temperature" />);
+
+    expect(await screen.findByText(/4 °C de amplitude/)).toBeOnTheScreen();
+    const next = screen.getByRole('button', { name: strings.onboarding.next });
+    expect(next.props.accessibilityState.disabled).toBe(true);
   });
 
   it('rotina de sono: janela menor que 6h bloqueia o avanço com a mensagem do domínio', async () => {
