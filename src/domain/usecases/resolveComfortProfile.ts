@@ -1,4 +1,4 @@
-import type { HabitIntensity } from '../entities/habit';
+import type { Habit } from '../entities/habit';
 import type { ThermalPreset, UserPreferences } from '../entities/preferences';
 import type { ComfortScoringParams } from './computeComfortScore';
 
@@ -61,7 +61,7 @@ type IntensityModifier = {
  * - **moderada**: esforço médio — calor incomoda antes (teto −2).
  * - **intensa**: o corpo aquece muito — faixa bem mais fria e +5 de vento.
  */
-const INTENSITY_MODIFIERS: Record<HabitIntensity, IntensityModifier> = {
+const INTENSITY_MODIFIERS: Record<Habit['intensity'], IntensityModifier> = {
   leve: {
     floorDelta: -2,
     ceilDelta: 0,
@@ -83,9 +83,8 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/** Preferências → parâmetros pessoais, antes de qualquer intensidade. */
-function personalParams(preferences: UserPreferences): PresetParams {
-  const { comfort } = preferences;
+/** Perfil de conforto → parâmetros, antes de qualquer intensidade. */
+function paramsFor(comfort: UserPreferences['comfort']): PresetParams {
   if (comfort.kind === 'preset') {
     return PRESET_PARAMS[comfort.preset];
   }
@@ -108,40 +107,61 @@ function personalParams(preferences: UserPreferences): PresetParams {
   };
 }
 
+/** O que o motor precisa saber do hábito para resolver o perfil dele. */
+export type HabitComfortContext = Pick<Habit, 'intensity' | 'comfortOverride'>;
+
 /**
- * Ponto único de resolução do perfil de conforto (§4): preferências → perfil
- * pessoal → modificador de intensidade (quando há hábito). Sem intensidade, o
- * perfil pessoal puro alimenta a recomendação genérica com UV normal; com
- * intensidade, UV é sempre 'alto' (exposição prolongada ao ar livre, como nos
- * perfis antigos). O `tempOffset` é da pessoa — intensidade não o altera
- * (o ajuste de esforço já vive no motor de vestimenta).
+ * Ponto único de resolução do perfil de conforto (§4): perfil de partida →
+ * modificador de intensidade (quando há hábito). Sem hábito, o perfil pessoal
+ * puro alimenta a recomendação genérica com UV normal; com hábito, UV é sempre
+ * 'alto' (exposição prolongada ao ar livre, como nos perfis antigos). O
+ * `tempOffset` acompanha a fonte da faixa — intensidade não o altera (o ajuste
+ * de esforço já vive no motor de vestimenta).
+ *
+ * **Override do hábito desliga o modificador de intensidade.** O modificador
+ * existe para adaptar uma preferência genérica ao esforço da atividade ("corro,
+ * então tolero mais frio que a minha média"). Quando a pessoa define à mão a
+ * faixa ideal *daquela* atividade — praia a 27–34 °C —, o contexto já está na
+ * escolha; descontar mais 6 °C por cima distorceria uma preferência explícita.
  */
 export function resolveComfortProfile(
   preferences: UserPreferences,
-  intensity?: HabitIntensity,
+  habit?: HabitComfortContext,
 ): ResolvedComfortProfile {
-  const personal = personalParams(preferences);
+  const override = habit?.comfortOverride;
+  const base = paramsFor(override ?? preferences.comfort);
 
-  if (intensity === undefined) {
+  const common = {
+    tempPenaltyPerDegree: TEMP_PENALTY_PER_DEGREE,
+    maxHumidity: base.maxHumidity,
+    tempOffset: base.tempOffset,
+  };
+
+  if (habit === undefined) {
     return {
-      idealTempRange: personal.idealTempRange,
-      tempPenaltyPerDegree: TEMP_PENALTY_PER_DEGREE,
+      ...common,
+      idealTempRange: base.idealTempRange,
       uvWeight: 'normal',
-      windToleranceKmh: personal.maxWind,
-      maxHumidity: personal.maxHumidity,
-      tempOffset: personal.tempOffset,
+      windToleranceKmh: base.maxWind,
     };
   }
 
-  const modifier = INTENSITY_MODIFIERS[intensity];
-  const [min, max] = personal.idealTempRange;
+  if (override !== undefined) {
+    return {
+      ...common,
+      idealTempRange: base.idealTempRange,
+      uvWeight: 'alto',
+      windToleranceKmh: base.maxWind,
+    };
+  }
+
+  const modifier = INTENSITY_MODIFIERS[habit.intensity];
+  const [min, max] = base.idealTempRange;
 
   return {
+    ...common,
     idealTempRange: [min + modifier.floorDelta, max + modifier.ceilDelta],
-    tempPenaltyPerDegree: TEMP_PENALTY_PER_DEGREE,
     uvWeight: 'alto',
-    windToleranceKmh: modifier.windTolerance(personal.maxWind),
-    maxHumidity: personal.maxHumidity,
-    tempOffset: personal.tempOffset,
+    windToleranceKmh: modifier.windTolerance(base.maxWind),
   };
 }

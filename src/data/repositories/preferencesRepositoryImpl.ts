@@ -4,14 +4,13 @@ import { DEFAULT_PREFERENCES, DEFAULT_USER_PREFERENCES } from '@/domain/entities
 import type { PreferencesRepository } from '@/domain/ports/preferencesRepository';
 
 import type { KeyValueStorage } from '../datasources/asyncStorageClient';
+import { isComfortShape } from '../guards/comfortShape';
 import { logger } from '../logger';
 
 /** Chave versionada (§7 das preferências). */
 export const PREFERENCES_STORAGE_KEY = 'prefs:v2';
 /** Formato anterior, mantido intocado após a migração (rollback barato). */
 export const LEGACY_PREFERENCES_STORAGE_KEY = 'prefs:v1';
-
-const THERMAL_PRESETS = ['friorento', 'equilibrado', 'calorento'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -27,23 +26,6 @@ function isCityShape(value: unknown): value is City {
     typeof value.longitude === 'number' &&
     typeof value.timezone === 'string'
   );
-}
-
-function isComfortShape(value: unknown): boolean {
-  if (!isRecord(value)) return false;
-  if (value.kind === 'preset') {
-    return typeof value.preset === 'string' && THERMAL_PRESETS.includes(value.preset);
-  }
-  if (value.kind === 'custom') {
-    return (
-      Array.isArray(value.idealTempRange) &&
-      value.idealTempRange.length === 2 &&
-      value.idealTempRange.every((edge) => typeof edge === 'number') &&
-      typeof value.maxHumidity === 'number' &&
-      typeof value.maxWind === 'number'
-    );
-  }
-  return false;
 }
 
 function isUserPreferencesShape(value: unknown): value is UserPreferences {

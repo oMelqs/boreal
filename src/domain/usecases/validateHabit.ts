@@ -1,11 +1,12 @@
 import type { Habit } from '../entities/habit';
+import { validateComfortPreferences } from './validateComfortPreferences';
 
 const NAME_MIN_LENGTH = 2;
 const NAME_MAX_LENGTH = 40;
 const VALID_DURATIONS = [30, 60, 90, 120];
 
 /** Campo do formulário ao qual o erro pertence (validação inline no onboarding). */
-export type HabitValidationField = 'name' | 'days' | 'schedule';
+export type HabitValidationField = 'name' | 'days' | 'schedule' | 'comfort';
 
 export type HabitValidationError = {
   field: HabitValidationField;
@@ -70,6 +71,13 @@ export function validateHabit(habit: Habit): HabitValidationError[] {
         field: 'schedule',
         message: 'O intervalo escolhido é menor que a duração da atividade.',
       });
+    }
+  }
+
+  if (habit.comfortOverride !== undefined) {
+    // Mesma regra do perfil global: a validação de conforto tem um dono só.
+    for (const error of validateComfortPreferences(habit.comfortOverride)) {
+      errors.push({ field: 'comfort', message: error.message });
     }
   }
 
