@@ -26,6 +26,12 @@ export type DraftHabit = {
   earliest: string;
   latest: string;
   days: Weekday[];
+  /**
+   * Pergunta no positivo ("Sugerir o que vestir"), porque é assim que se lê na
+   * tela; a entity guarda a negação (`skipOutfit`) para o campo ser aditivo. A
+   * inversão acontece só aqui e em `draftToHabit`.
+   */
+  suggestOutfit: boolean;
 };
 
 export const EMPTY_DRAFT: DraftHabit = {
@@ -40,6 +46,7 @@ export const EMPTY_DRAFT: DraftHabit = {
   earliest: '',
   latest: '',
   days: [],
+  suggestOutfit: true,
 };
 
 /** Habit → campos do formulário (edição no mini-fluxo). */
@@ -50,6 +57,7 @@ function habitToDraft(habit: Habit): DraftHabit {
     intensity: habit.intensity,
     outdoor: habit.outdoor,
     days: habit.days,
+    suggestOutfit: habit.skipOutfit !== true,
     scheduleKind: habit.schedule.kind,
     startTime: habit.schedule.kind === 'fixed' ? habit.schedule.startTime : '',
     endTime: habit.schedule.kind === 'fixed' ? habit.schedule.endTime : '',
@@ -77,6 +85,9 @@ export function draftToHabit(draft: DraftHabit, id: string, createdAt: string): 
             ...(draft.earliest !== '' ? { earliest: draft.earliest } : {}),
             ...(draft.latest !== '' ? { latest: draft.latest } : {}),
           },
+    // Só grava a exceção: hábito livre nem passa pela vestimenta, e o normal
+    // (com sugestão) fica sem o campo.
+    ...(draft.scheduleKind === 'fixed' && !draft.suggestOutfit ? { skipOutfit: true } : {}),
     enabled: true,
     createdAt,
   };

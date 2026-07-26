@@ -72,6 +72,23 @@ export function HabitCard({ suggestion, todayHours, now }: HabitCardProps) {
     );
   }
 
+  if (suggestion.kind === 'info') {
+    // Sem sugestão de roupa: o card é só o lembrete de que o hábito é hoje.
+    return (
+      <View style={cardStyle}>
+        <View style={[styles.headerRow, { gap: spacing.sm }]}>
+          <View style={styles.titleBlock}>
+            <Text style={[typography.heading, { color: colors.textPrimary }]}>{habit.name}</Text>
+            {schedule ? (
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>{schedule}</Text>
+            ) : null}
+          </View>
+          {suggestion.when === 'amanha' ? <TomorrowBadge /> : null}
+        </View>
+      </View>
+    );
+  }
+
   if (suggestion.kind === 'clothing') {
     const { suggestion: clothing } = suggestion;
     return (

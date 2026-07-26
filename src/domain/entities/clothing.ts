@@ -29,4 +29,6 @@ export type ClothingSuggestion = {
 export type HabitSuggestion =
   | { habit: Habit; kind: 'clothing'; when: 'hoje' | 'amanha'; suggestion: ClothingSuggestion }
   | { habit: Habit; kind: 'window'; when: 'hoje' | 'amanha'; recommendation: Recommendation }
-  | { habit: Habit; kind: 'no-slot'; when: 'hoje'; reason: string };
+  | { habit: Habit; kind: 'no-slot'; when: 'hoje'; reason: string }
+  /** Só o lembrete do horário: o hábito dispensou a sugestão de roupa. */
+  | { habit: Habit; kind: 'info'; when: 'hoje' | 'amanha' };

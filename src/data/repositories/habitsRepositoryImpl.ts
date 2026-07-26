@@ -34,9 +34,12 @@ function isHabitShape(value: unknown): value is Habit {
     return false;
   }
 
-  // Campo aditivo: ausente é o normal; presente precisa ter shape válido, ou
-  // a validação adiante quebraria ao ler a faixa de um valor qualquer.
+  // Campos aditivos: ausentes é o normal; presentes precisam ter shape válido,
+  // ou a validação adiante quebraria ao ler a faixa de um valor qualquer.
   if (value.comfortOverride !== undefined && !isComfortShape(value.comfortOverride)) {
+    return false;
+  }
+  if (value.skipOutfit !== undefined && typeof value.skipOutfit !== 'boolean') {
     return false;
   }
 

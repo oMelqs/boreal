@@ -47,6 +47,12 @@ export type Habit = {
    * frio). Ausente = usa a preferência global — o caso da maioria dos hábitos.
    */
   comfortOverride?: ComfortPreferences;
+  /**
+   * true = não faz sentido sugerir roupa para este hábito (banho quente, uma
+   * soneca). Ausente = comportamento normal, então hábitos já salvos seguem
+   * recebendo vestimenta.
+   */
+  skipOutfit?: boolean;
   enabled: boolean;
   /** ISO 8601. */
   createdAt: string;

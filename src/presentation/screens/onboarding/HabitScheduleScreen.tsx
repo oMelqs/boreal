@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import type { FlexibleSchedule } from '@/domain/entities/habit';
 import { Button } from '@/presentation/components/Button';
@@ -68,6 +68,24 @@ export function HabitScheduleScreen() {
             onChange={(endTime) => updateDraft({ endTime })}
             value={draft.endTime}
           />
+          {/* Só faz sentido no horário fixo: hábito livre recebe janela, não roupa. */}
+          <View style={[styles.outfitRow, { gap: spacing.md }]}>
+            <View style={styles.outfitTexts}>
+              <Text style={[typography.body, { color: colors.textPrimary }]}>
+                {strings.onboarding.outfitToggleLabel}
+              </Text>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                {strings.onboarding.outfitToggleHint}
+              </Text>
+            </View>
+            <Switch
+              accessibilityLabel={strings.onboarding.outfitToggleLabel}
+              onValueChange={(suggestOutfit) => updateDraft({ suggestOutfit })}
+              thumbColor={colors.surface}
+              trackColor={{ false: colors.surfaceBorder, true: colors.accent }}
+              value={draft.suggestOutfit}
+            />
+          </View>
         </View>
       ) : (
         <View style={{ gap: spacing.lg }}>
@@ -124,6 +142,14 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  outfitRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  outfitTexts: {
+    flex: 1,
+    gap: 2,
   },
   uppercase: {
     textTransform: 'uppercase',
