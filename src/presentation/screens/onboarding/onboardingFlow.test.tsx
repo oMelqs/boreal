@@ -1,11 +1,12 @@
-import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import type { Container } from '@/di/container';
-import { EMPTY_DRAFT, useOnboarding } from '@/presentation/hooks/useOnboarding';
+import { draftToHabit, EMPTY_DRAFT, useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { strings } from '@/presentation/i18n/strings';
 import { createFakeContainer, createProvidersWrapper } from '@/presentation/testing/providers';
 
 import { HabitDaysScreen } from './HabitDaysScreen';
+import { HabitScheduleScreen } from './HabitScheduleScreen';
 import { HabitsStepScreen } from './HabitsStepScreen';
 import { ReviewScreen } from './ReviewScreen';
 import { WelcomeScreen } from './WelcomeScreen';
@@ -101,6 +102,48 @@ describe('onboarding', () => {
     await user.press(screen.getByRole('button', { name: strings.onboarding.weekdaysShortcut }));
 
     expect(useOnboarding.getState().draft.days).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('horário: a pergunta sobre roupa só existe no horário fixo', async () => {
+    useOnboarding.getState().startDraft({ ...validDraft, scheduleKind: 'flexible' });
+    const { rerender } = await renderWith(<HabitScheduleScreen />);
+
+    expect(
+      screen.queryByLabelText(strings.onboarding.outfitToggleLabel),
+    ).not.toBeOnTheScreen();
+
+    useOnboarding.getState().updateDraft({ scheduleKind: 'fixed' });
+    await rerender(<HabitScheduleScreen />);
+
+    expect(
+      await screen.findByLabelText(strings.onboarding.outfitToggleLabel),
+    ).toBeOnTheScreen();
+  });
+
+  it('horário: desligar a sugestão de roupa marca o hábito salvo', async () => {
+    const saveHabit = jest.fn(async () => {});
+    useOnboarding.getState().beginManage({
+      id: 'shower',
+      name: 'Banho quente',
+      category: 'outro',
+      intensity: 'leve',
+      outdoor: false,
+      days: [1],
+      schedule: { kind: 'fixed', startTime: '21:00', endTime: '21:30' },
+      enabled: true,
+      createdAt: '2026-07-01T00:00:00.000Z',
+    });
+    await renderWith(<HabitScheduleScreen />, createFakeContainer({ saveHabit }));
+
+    fireEvent(
+      await screen.findByLabelText(strings.onboarding.outfitToggleLabel),
+      'valueChange',
+      false,
+    );
+
+    expect(useOnboarding.getState().draft.suggestOutfit).toBe(false);
+    expect(draftToHabit(useOnboarding.getState().draft, 'shower', '2026-07-01T00:00:00.000Z'))
+      .toMatchObject({ skipOutfit: true });
   });
 
   it('review: concluir persiste os hábitos, marca a flag e vai para a home', async () => {

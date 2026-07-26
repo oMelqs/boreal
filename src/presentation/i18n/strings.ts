@@ -157,6 +157,8 @@ export const strings = {
     durationOption: (minutes: number) => (minutes >= 60 ? `${minutes / 60}h` : `${minutes}min`),
     durationOptionLong: (minutes: number) =>
       minutes >= 60 ? `${minutes / 60} hora${minutes > 60 ? 's' : ''}` : `${minutes} minutos`,
+    outfitToggleLabel: 'Sugerir o que vestir',
+    outfitToggleHint: 'Desligue para hábitos que não pedem roupa, como um banho.',
     boundsLabel: 'Só num intervalo? (opcional)',
     earliestLabel: 'A partir de',
     latestLabel: 'Até',
