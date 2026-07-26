@@ -1,5 +1,5 @@
-import { ComfortSliderScreen } from '@/presentation/screens/preferences/ComfortSliderScreen';
+import { ComfortFieldScreen } from '@/presentation/screens/preferences/ComfortFieldScreen';
 
 export default function OnboardingWind() {
-  return <ComfortSliderScreen field="wind" />;
+  return <ComfortFieldScreen field="wind" />;
 }

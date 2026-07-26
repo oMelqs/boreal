@@ -1,5 +1,5 @@
-import { ComfortSliderScreen } from '@/presentation/screens/preferences/ComfortSliderScreen';
+import { ComfortFieldScreen } from '@/presentation/screens/preferences/ComfortFieldScreen';
 
 export default function PreferencesHumidity() {
-  return <ComfortSliderScreen field="humidity" standalone />;
+  return <ComfortFieldScreen field="humidity" standalone />;
 }

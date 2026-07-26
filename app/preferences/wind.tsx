@@ -1,5 +1,5 @@
-import { ComfortSliderScreen } from '@/presentation/screens/preferences/ComfortSliderScreen';
+import { ComfortFieldScreen } from '@/presentation/screens/preferences/ComfortFieldScreen';
 
 export default function PreferencesWind() {
-  return <ComfortSliderScreen field="wind" standalone />;
+  return <ComfortFieldScreen field="wind" standalone />;
 }

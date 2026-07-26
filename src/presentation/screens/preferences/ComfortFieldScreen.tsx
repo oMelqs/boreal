@@ -1,10 +1,19 @@
 import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 
+import {
+  HUMIDITY_MAX,
+  HUMIDITY_MIN,
+  TEMP_MAX_C,
+  TEMP_MIN_C,
+  WIND_MAX_KMH,
+  WIND_MIN_KMH,
+} from '@/domain/usecases/validateComfortPreferences';
 import { Button } from '@/presentation/components/Button';
-import { RangeSlider, Slider } from '@/presentation/components/RangeSlider';
+import { NumericRangeInput } from '@/presentation/components/NumericRangeInput';
+import { NumericStepperInput } from '@/presentation/components/NumericStepperInput';
 import { StepHeader } from '@/presentation/components/StepHeader';
-import { usePreferencesForm } from '@/presentation/hooks/usePreferencesForm';
+import { usePreferencesForm, validateDraft } from '@/presentation/hooks/usePreferencesForm';
 import { strings } from '@/presentation/i18n/strings';
 import { useTheme } from '@/presentation/theme/useTheme';
 
@@ -13,6 +22,9 @@ import { preferencesFlow } from './flow';
 
 /** Sub-etapas do modo manual (§8, 1a–1c). */
 export type ComfortField = 'temperature' | 'humidity' | 'wind';
+
+/** Passo dos botões −/+: 1 °C na temperatura, 5 em umidade e vento (§4.1). */
+const COARSE_STEP = 5;
 
 const COPY = {
   temperature: {
@@ -29,21 +41,26 @@ const COPY = {
   },
 } as const;
 
-type ComfortSliderScreenProps = {
+type ComfortFieldScreenProps = {
   field: ComfortField;
   standalone?: boolean;
 };
 
 /**
- * Uma sub-etapa do modo manual: um fator por tela, com o valor escolhido lido
- * em linguagem natural logo abaixo do controle.
+ * Uma sub-etapa do modo manual: um fator por tela, com entrada numérica (aqui
+ * o valor exato importa) e a leitura em linguagem natural logo abaixo.
  */
-export function ComfortSliderScreen({ field, standalone = false }: ComfortSliderScreenProps) {
+export function ComfortFieldScreen({ field, standalone = false }: ComfortFieldScreenProps) {
   const router = useRouter();
   const { colors, typography, spacing } = useTheme();
   const flow = preferencesFlow(standalone);
   const draft = usePreferencesForm((state) => state.draft);
   const update = usePreferencesForm((state) => state.update);
+
+  // A regra de amplitude vive no domain; a tela só exibe a mensagem dele e
+  // segura o avanço enquanto a faixa estiver inválida.
+  const tempError = validateDraft(draft).find((error) => error.field === 'tempRange');
+  const blocked = field === 'temperature' && tempError !== undefined;
 
   const next =
     field === 'temperature' ? flow.humidity : field === 'humidity' ? flow.wind : flow.sleep;
@@ -57,7 +74,13 @@ export function ComfortSliderScreen({ field, standalone = false }: ComfortSlider
           total={flow.steps.total}
         />
       }
-      footer={<Button label={strings.onboarding.next} onPress={() => router.push(next)} />}
+      footer={
+        <Button
+          disabled={blocked}
+          label={strings.onboarding.next}
+          onPress={() => router.push(next)}
+        />
+      }
     >
       <View style={{ gap: spacing.xs }}>
         <Text accessibilityRole="header" style={[typography.title, { color: colors.textPrimary }]}>
@@ -67,42 +90,43 @@ export function ComfortSliderScreen({ field, standalone = false }: ComfortSlider
       </View>
 
       {field === 'temperature' && (
-        <RangeSlider
-          describeValue={strings.preferences.tempFeeling}
-          edgeLabels={{
-            min: `${strings.preferences.tempRangeLabel} — mínima`,
-            max: `${strings.preferences.tempRangeLabel} — máxima`,
-          }}
-          formatValue={strings.preferences.tempRangeValue}
-          label={strings.preferences.tempRangeLabel}
-          max={45}
-          min={-10}
-          minSpread={4}
+        <NumericRangeInput
+          error={tempError?.message}
+          hint={strings.preferences.tempFeeling(draft.tempMin, draft.tempMax)}
+          max={TEMP_MAX_C}
+          min={TEMP_MIN_C}
           onChange={([tempMin, tempMax]) => update({ tempMin, tempMax })}
+          unit="°C"
           value={[draft.tempMin, draft.tempMax]}
         />
       )}
 
       {field === 'humidity' && (
-        <Slider
-          describeValue={strings.preferences.humidityFeeling}
-          formatValue={strings.preferences.humidityValue}
+        <NumericStepperInput
+          accessibilityLabel={strings.preferences.humidityLabel}
+          fieldName={strings.preferences.numeric.humidityField}
+          hint={strings.preferences.humidityFeeling(draft.maxHumidity)}
           label={strings.preferences.humidityLabel}
-          max={100}
-          min={40}
+          max={HUMIDITY_MAX}
+          min={HUMIDITY_MIN}
           onChange={(maxHumidity) => update({ maxHumidity })}
+          step={COARSE_STEP}
+          unit="%"
           value={draft.maxHumidity}
         />
       )}
 
       {field === 'wind' && (
-        <Slider
-          describeValue={strings.preferences.windFeeling}
-          formatValue={strings.preferences.windValue}
+        <NumericStepperInput
+          accessibilityLabel={strings.preferences.windLabel}
+          fieldName={strings.preferences.numeric.windField}
+          hint={strings.preferences.windFeeling(draft.maxWind)}
           label={strings.preferences.windLabel}
-          max={60}
-          min={5}
+          max={WIND_MAX_KMH}
+          min={WIND_MIN_KMH}
           onChange={(maxWind) => update({ maxWind })}
+          step={COARSE_STEP}
+          unit="km/h"
           value={draft.maxWind}
         />
       )}
