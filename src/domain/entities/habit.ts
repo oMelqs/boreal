@@ -1,3 +1,5 @@
+import type { ComfortPreferences } from './preferences';
+
 /** Categoria do hábito — define defaults de intensidade e local (§3). */
 export type HabitCategory = 'pet' | 'exercicio' | 'estudo' | 'trabalho' | 'lazer' | 'outro';
 
@@ -40,6 +42,11 @@ export type Habit = {
   /** Não vazio. */
   days: Weekday[];
   schedule: HabitSchedule;
+  /**
+   * Conforto próprio desta atividade (praia pede calor; um treino pesado pede
+   * frio). Ausente = usa a preferência global — o caso da maioria dos hábitos.
+   */
+  comfortOverride?: ComfortPreferences;
   enabled: boolean;
   /** ISO 8601. */
   createdAt: string;

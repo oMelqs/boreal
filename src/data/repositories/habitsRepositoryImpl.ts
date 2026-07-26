@@ -3,6 +3,7 @@ import type { HabitsRepository } from '@/domain/ports/habitsRepository';
 import { validateHabit } from '@/domain/usecases/validateHabit';
 
 import type { KeyValueStorage } from '../datasources/asyncStorageClient';
+import { isComfortShape } from '../guards/comfortShape';
 import { logger } from '../logger';
 
 /**
@@ -30,6 +31,12 @@ function isHabitShape(value: unknown): value is Habit {
     !Array.isArray(value.days) ||
     !value.days.every((day) => typeof day === 'number' && day >= 0 && day <= 6)
   ) {
+    return false;
+  }
+
+  // Campo aditivo: ausente é o normal; presente precisa ter shape válido, ou
+  // a validação adiante quebraria ao ler a faixa de um valor qualquer.
+  if (value.comfortOverride !== undefined && !isComfortShape(value.comfortOverride)) {
     return false;
   }
 

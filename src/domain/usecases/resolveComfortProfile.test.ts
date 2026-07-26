@@ -101,32 +101,32 @@ describe('resolveComfortProfile — composição com intensidade (§4.3)', () =>
   it.each(['leve', 'moderada', 'intensa'] as const)(
     'equilibrado + %s reproduz exatamente o perfil antigo por intensidade',
     (intensity) => {
-      const profile = resolveComfortProfile(DEFAULT_USER_PREFERENCES, intensity);
+      const profile = resolveComfortProfile(DEFAULT_USER_PREFERENCES, { intensity });
       expect(profile).toMatchObject(LEGACY_INTENSITY_PROFILES[intensity]);
     },
   );
 
   it('friorento + intensa: deltas sobre a faixa pessoal e +5 de vento', () => {
-    const profile = resolveComfortProfile(preset('friorento'), 'intensa');
+    const profile = resolveComfortProfile(preset('friorento'), { intensity: 'intensa' });
     expect(profile.idealTempRange).toEqual([13, 22]);
     expect(profile.windToleranceKmh).toBe(20);
     expect(profile.uvWeight).toBe('alto');
   });
 
   it('calorento + leve: vento pessoal maior que a base leve perde para o min', () => {
-    const profile = resolveComfortProfile(preset('calorento'), 'leve');
+    const profile = resolveComfortProfile(preset('calorento'), { intensity: 'leve' });
     expect(profile.idealTempRange).toEqual([13, 23]);
     expect(profile.windToleranceKmh).toBe(15);
   });
 
   it('custom + moderada: vento pessoal preservado, faixa deslocada', () => {
-    const profile = resolveComfortProfile(custom([24, 30], 60, 35), 'moderada');
+    const profile = resolveComfortProfile(custom([24, 30], 60, 35), { intensity: 'moderada' });
     expect(profile.idealTempRange).toEqual([21, 28]);
     expect(profile.windToleranceKmh).toBe(35);
   });
 
   it('intensidade não altera o tempOffset da pessoa', () => {
-    expect(resolveComfortProfile(preset('friorento'), 'intensa').tempOffset).toBe(-3);
-    expect(resolveComfortProfile(custom([24, 30]), 'leve').tempOffset).toBe(-4);
+    expect(resolveComfortProfile(preset('friorento'), { intensity: 'intensa' }).tempOffset).toBe(-3);
+    expect(resolveComfortProfile(custom([24, 30]), { intensity: 'leve' }).tempOffset).toBe(-4);
   });
 });

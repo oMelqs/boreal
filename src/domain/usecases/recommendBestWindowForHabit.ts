@@ -38,7 +38,7 @@ function profileFor(
   preferences: UserPreferences,
 ): ScoringProfile {
   return {
-    ...resolveComfortProfile(preferences, habit.intensity),
+    ...resolveComfortProfile(preferences, habit),
     windowHours: windowHoursFor(schedule.durationMinutes),
     ...(schedule.earliest !== undefined || schedule.latest !== undefined
       ? {

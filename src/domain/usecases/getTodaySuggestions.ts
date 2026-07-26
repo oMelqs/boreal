@@ -98,7 +98,6 @@ export function getTodaySuggestions(
   const tomorrowWeekday = ((todayWeekday + 1) % 7) as Habit['days'][number];
   // Minutos desde o início do dia-âncora: às 00h30 ancorado em ontem, 1470.
   const nowMinutes = Math.floor((now.getTime() - startOfLocalDay(anchor)) / MINUTE_MS);
-  const { tempOffset } = resolveComfortProfile(preferences);
 
   // "Agora" do amanhã dos hábitos livres: o início do próximo ciclo acordado
   // (com rotina) ou a meia-noite do dia seguinte (comportamento legado).
@@ -118,6 +117,9 @@ export function getTodaySuggestions(
 
     if (habit.schedule.kind === 'fixed') {
       const schedule = habit.schedule;
+      // O offset vem do perfil DO HÁBITO: com conforto próprio, é ele que
+      // decide o agasalho, não a preferência global.
+      const { tempOffset } = resolveComfortProfile(preferences, habit);
       if (occursToday && parseMinutes(schedule.startTime) >= nowMinutes) {
         suggestions.push(fixedSuggestion(habit, schedule, today, 'hoje', tempOffset));
       } else if (occursTomorrow && tomorrow.length > 0) {

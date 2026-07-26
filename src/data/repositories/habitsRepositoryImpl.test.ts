@@ -58,6 +58,34 @@ describe('habitsRepositoryImpl', () => {
     expect(logger.warn).toHaveBeenCalledTimes(4);
   });
 
+  it('hábito salvo antes do conforto por hábito continua sendo lido (§7)', async () => {
+    const { comfortOverride, ...legacy } = buildHabit({ id: 'antigo' });
+    const storage = createFakeStorage({
+      [HABITS_STORAGE_KEY]: JSON.stringify([legacy]),
+    });
+
+    const all = await createHabitsRepository(storage).getAll();
+
+    expect(all).toEqual([legacy]);
+    expect(all[0].comfortOverride).toBeUndefined();
+  });
+
+  it('faz roundtrip do conforto próprio e descarta override malformado', async () => {
+    const withOverride = buildHabit({
+      id: 'praia',
+      comfortOverride: { kind: 'custom', idealTempRange: [27, 34], maxHumidity: 90, maxWind: 15 },
+    });
+    const brokenOverride = { ...buildHabit({ id: 'quebrado' }), comfortOverride: 42 };
+    const storage = createFakeStorage({
+      [HABITS_STORAGE_KEY]: JSON.stringify([withOverride, brokenOverride]),
+    });
+
+    const all = await createHabitsRepository(storage).getAll();
+
+    expect(all).toEqual([withOverride]);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
   it('raiz que não é lista vira lista vazia com aviso, nunca crash', async () => {
     const storage = createFakeStorage({
       [HABITS_STORAGE_KEY]: JSON.stringify({ hacked: true }),
