@@ -36,6 +36,12 @@ function fixedSuggestion(
   when: 'hoje' | 'amanha',
   tempOffset: number,
 ): HabitSuggestion {
+  // Quem dispensou a dica de roupa recebe só o lembrete do horário — nada de
+  // "leve um casaco" para um banho quente.
+  if (habit.skipOutfit === true) {
+    return { habit, kind: 'info', when };
+  }
+
   const atStart = hourAt(dayHours, schedule.startTime);
   const atEnd = hourAt(dayHours, schedule.endTime);
   const suggestion = atStart
