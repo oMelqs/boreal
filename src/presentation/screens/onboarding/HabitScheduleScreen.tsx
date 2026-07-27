@@ -29,7 +29,7 @@ export function HabitScheduleScreen() {
 
   return (
     <OnboardingShell
-      header={<StepHeader step={2} total={3} onBack={() => router.back()} />}
+      header={<StepHeader step={2} total={4} onBack={() => router.back()} />}
       footer={
         <Button
           disabled={scheduleError !== undefined}

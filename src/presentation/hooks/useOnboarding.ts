@@ -11,6 +11,8 @@ import type {
 import { HABIT_CATEGORY_DEFAULTS } from '@/domain/entities/habit';
 import type { HabitValidationError } from '@/domain/usecases/validateHabit';
 import { validateHabit } from '@/domain/usecases/validateHabit';
+import type { ComfortDraft } from '@/presentation/hooks/comfortDraft';
+import { comfortToDraft, draftToComfort } from '@/presentation/hooks/comfortDraft';
 import { generateId } from '@/presentation/utils/generateId';
 
 /** Campos "achatados" do formulário do mini-fluxo — fácil de ligar em inputs. */
@@ -32,6 +34,8 @@ export type DraftHabit = {
    * inversão acontece só aqui e em `draftToHabit`.
    */
   suggestOutfit: boolean;
+  /** null = herda a preferência global; preenchido = conforto só deste hábito. */
+  comfort: ComfortDraft | null;
 };
 
 export const EMPTY_DRAFT: DraftHabit = {
@@ -47,6 +51,7 @@ export const EMPTY_DRAFT: DraftHabit = {
   latest: '',
   days: [],
   suggestOutfit: true,
+  comfort: null,
 };
 
 /** Habit → campos do formulário (edição no mini-fluxo). */
@@ -58,6 +63,7 @@ function habitToDraft(habit: Habit): DraftHabit {
     outdoor: habit.outdoor,
     days: habit.days,
     suggestOutfit: habit.skipOutfit !== true,
+    comfort: habit.comfortOverride ? comfortToDraft(habit.comfortOverride) : null,
     scheduleKind: habit.schedule.kind,
     startTime: habit.schedule.kind === 'fixed' ? habit.schedule.startTime : '',
     endTime: habit.schedule.kind === 'fixed' ? habit.schedule.endTime : '',
@@ -88,6 +94,7 @@ export function draftToHabit(draft: DraftHabit, id: string, createdAt: string): 
     // Só grava a exceção: hábito livre nem passa pela vestimenta, e o normal
     // (com sugestão) fica sem o campo.
     ...(draft.scheduleKind === 'fixed' && !draft.suggestOutfit ? { skipOutfit: true } : {}),
+    ...(draft.comfort ? { comfortOverride: draftToComfort(draft.comfort) } : {}),
     enabled: true,
     createdAt,
   };

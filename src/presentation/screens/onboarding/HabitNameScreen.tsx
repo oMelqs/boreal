@@ -25,7 +25,7 @@ export function HabitNameScreen() {
 
   return (
     <OnboardingShell
-      header={<StepHeader step={1} total={3} onBack={() => router.back()} />}
+      header={<StepHeader step={1} total={4} onBack={() => router.back()} />}
       footer={
         <Button
           disabled={nameError !== undefined}
