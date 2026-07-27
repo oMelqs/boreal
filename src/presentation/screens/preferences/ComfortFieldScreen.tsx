@@ -1,17 +1,9 @@
 import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import {
-  HUMIDITY_MAX,
-  HUMIDITY_MIN,
-  TEMP_MAX_C,
-  TEMP_MIN_C,
-  WIND_MAX_KMH,
-  WIND_MIN_KMH,
-} from '@/domain/usecases/validateComfortPreferences';
 import { Button } from '@/presentation/components/Button';
-import { NumericRangeInput } from '@/presentation/components/NumericRangeInput';
-import { NumericStepperInput } from '@/presentation/components/NumericStepperInput';
+import type { ComfortField } from '@/presentation/components/ComfortFieldsForm';
+import { ComfortFieldsForm } from '@/presentation/components/ComfortFieldsForm';
 import { StepHeader } from '@/presentation/components/StepHeader';
 import { usePreferencesForm, validateDraft } from '@/presentation/hooks/usePreferencesForm';
 import { strings } from '@/presentation/i18n/strings';
@@ -19,12 +11,6 @@ import { useTheme } from '@/presentation/theme/useTheme';
 
 import { OnboardingShell } from '../onboarding/OnboardingShell';
 import { preferencesFlow } from './flow';
-
-/** Sub-etapas do modo manual (§8, 1a–1c). */
-export type ComfortField = 'temperature' | 'humidity' | 'wind';
-
-/** Passo dos botões −/+: 1 °C na temperatura, 5 em umidade e vento (§4.1). */
-const COARSE_STEP = 5;
 
 const COPY = {
   temperature: {
@@ -89,47 +75,12 @@ export function ComfortFieldScreen({ field, standalone = false }: ComfortFieldSc
         <Text style={[typography.body, { color: colors.textSecondary }]}>{COPY[field].hint}</Text>
       </View>
 
-      {field === 'temperature' && (
-        <NumericRangeInput
-          error={tempError?.message}
-          hint={strings.preferences.tempFeeling(draft.tempMin, draft.tempMax)}
-          max={TEMP_MAX_C}
-          min={TEMP_MIN_C}
-          onChange={([tempMin, tempMax]) => update({ tempMin, tempMax })}
-          unit="°C"
-          value={[draft.tempMin, draft.tempMax]}
-        />
-      )}
-
-      {field === 'humidity' && (
-        <NumericStepperInput
-          accessibilityLabel={strings.preferences.humidityLabel}
-          fieldName={strings.preferences.numeric.humidityField}
-          hint={strings.preferences.humidityFeeling(draft.maxHumidity)}
-          label={strings.preferences.humidityLabel}
-          max={HUMIDITY_MAX}
-          min={HUMIDITY_MIN}
-          onChange={(maxHumidity) => update({ maxHumidity })}
-          step={COARSE_STEP}
-          unit="%"
-          value={draft.maxHumidity}
-        />
-      )}
-
-      {field === 'wind' && (
-        <NumericStepperInput
-          accessibilityLabel={strings.preferences.windLabel}
-          fieldName={strings.preferences.numeric.windField}
-          hint={strings.preferences.windFeeling(draft.maxWind)}
-          label={strings.preferences.windLabel}
-          max={WIND_MAX_KMH}
-          min={WIND_MIN_KMH}
-          onChange={(maxWind) => update({ maxWind })}
-          step={COARSE_STEP}
-          unit="km/h"
-          value={draft.maxWind}
-        />
-      )}
+      <ComfortFieldsForm
+        fields={[field]}
+        onChange={update}
+        tempError={tempError?.message}
+        value={draft}
+      />
     </OnboardingShell>
   );
 }

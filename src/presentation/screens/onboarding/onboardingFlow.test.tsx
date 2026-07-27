@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import type { Container } from '@/di/container';
 import { draftToHabit, EMPTY_DRAFT, useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { strings } from '@/presentation/i18n/strings';
 import { createFakeContainer, createProvidersWrapper } from '@/presentation/testing/providers';
 
+import { HabitComfortStepScreen } from './HabitComfortStepScreen';
 import { HabitDaysScreen } from './HabitDaysScreen';
 import { HabitScheduleScreen } from './HabitScheduleScreen';
 import { HabitsStepScreen } from './HabitsStepScreen';
@@ -34,6 +35,31 @@ const validDraft = {
   name: 'Passear com o cachorro',
   category: 'pet' as const,
 };
+
+/** Liga o "personalizar para este hábito" e entra no modo manual. */
+async function openCustomComfort(user: ReturnType<typeof userEvent.setup>) {
+  await enableCustomComfort();
+  await user.press(
+    await screen.findByRole('button', { name: strings.preferences.customLink }),
+  );
+}
+
+/** Liga o switch "personalizar" e espera o formulário aparecer. */
+async function enableCustomComfort() {
+  fireEvent(await screen.findByLabelText(strings.onboarding.comfortCustomize), 'valueChange', true);
+  await screen.findByRole('button', { name: strings.preferences.customLink });
+}
+
+/** Digita num campo numérico e sai dele (o valor só é reportado no blur). */
+async function typeAndLeave(label: string, text: string) {
+  await act(async () => {
+    fireEvent(screen.getByLabelText(label), 'focus');
+    fireEvent.changeText(screen.getByLabelText(label), text);
+  });
+  await act(async () => {
+    fireEvent(screen.getByLabelText(label), 'blur');
+  });
+}
 
 describe('onboarding', () => {
   const user = userEvent.setup();
@@ -79,15 +105,31 @@ describe('onboarding', () => {
     expect(mockPush).toHaveBeenCalledWith('/onboarding/habit/name');
   });
 
-  it('days: salvar fica desabilitado sem dias e habilita ao escolher', async () => {
+  it('days: avançar fica desabilitado sem dias e habilita ao escolher', async () => {
     useOnboarding.getState().startDraft(validDraft);
     await renderWith(<HabitDaysScreen />);
 
-    const save = screen.getByRole('button', { name: strings.onboarding.save });
-    expect(save.props.accessibilityState.disabled).toBe(true);
+    const next = screen.getByRole('button', { name: strings.onboarding.next });
+    expect(next.props.accessibilityState.disabled).toBe(true);
 
     await user.press(screen.getByRole('button', { name: 'segunda-feira' }));
     await user.press(screen.getByRole('button', { name: 'quarta-feira' }));
+
+    await user.press(screen.getByRole('button', { name: strings.onboarding.next }));
+
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/habit/comfort');
+  });
+
+  it('days: hábito que dispensa roupa salva ali mesmo, sem etapa de conforto', async () => {
+    useOnboarding.getState().startDraft({
+      ...validDraft,
+      scheduleKind: 'fixed',
+      startTime: '21:00',
+      endTime: '21:30',
+      suggestOutfit: false,
+      days: [1],
+    });
+    await renderWith(<HabitDaysScreen />);
 
     await user.press(screen.getByRole('button', { name: strings.onboarding.save }));
 
@@ -180,8 +222,8 @@ describe('onboarding', () => {
       createdAt: '2026-07-01T00:00:00.000Z',
     });
 
-    await renderWith(<HabitDaysScreen />, createFakeContainer({ saveHabit }));
-    await user.press(screen.getByRole('button', { name: 'sexta-feira' }));
+    await renderWith(<HabitComfortStepScreen />, createFakeContainer({ saveHabit }));
+    useOnboarding.getState().toggleDraftDay(5);
     await user.press(screen.getByRole('button', { name: strings.onboarding.save }));
 
     await waitFor(() => expect(saveHabit).toHaveBeenCalledTimes(1));
@@ -194,8 +236,92 @@ describe('onboarding', () => {
     );
     expect(mockDismissTo).toHaveBeenCalledWith('/habits');
     expect(useOnboarding.getState().mode).toBe('onboarding');
+    // sem personalizar, o hábito herda o perfil global: nada de override
+    expect(saveHabit).toHaveBeenCalledWith(
+      expect.not.objectContaining({ comfortOverride: expect.anything() }),
+    );
     // nada foi commitado na lista local do onboarding
     expect(useOnboarding.getState().habits).toEqual([]);
+  });
+
+  it('conforto: o preset escolhido vira o override do hábito', async () => {
+    useOnboarding.getState().startDraft({ ...validDraft, days: [1] });
+    await renderWith(<HabitComfortStepScreen />);
+
+    await enableCustomComfort();
+    const calorento = strings.preferences.preset.calorento;
+    await user.press(
+      screen.getByRole('button', { name: `${calorento.label}. ${calorento.hint}` }),
+    );
+    await user.press(screen.getByRole('button', { name: strings.onboarding.save }));
+
+    expect(useOnboarding.getState().habits[0]?.comfortOverride).toEqual({
+      kind: 'preset',
+      preset: 'calorento',
+    });
+  });
+
+  it('conforto: a faixa manual grava a temperatura digitada', async () => {
+    useOnboarding.getState().startDraft({ ...validDraft, days: [1] });
+    await renderWith(<HabitComfortStepScreen />);
+
+    await openCustomComfort(user);
+    await typeAndLeave(strings.preferences.numeric.tempMaxLabel, '34');
+    await typeAndLeave(strings.preferences.numeric.tempMinLabel, '27');
+
+    await user.press(screen.getByRole('button', { name: strings.onboarding.save }));
+
+    expect(useOnboarding.getState().habits[0]?.comfortOverride).toEqual({
+      kind: 'custom',
+      idealTempRange: [27, 34],
+      maxHumidity: 70,
+      maxWind: 20,
+    });
+  });
+
+  it('conforto: amplitude curta mostra o erro do domain e bloqueia o salvar', async () => {
+    useOnboarding.getState().startDraft({ ...validDraft, days: [1] });
+    await renderWith(<HabitComfortStepScreen />);
+
+    await openCustomComfort(user);
+    await typeAndLeave(strings.preferences.numeric.tempMaxLabel, '20');
+
+    expect(
+      screen.getByText('A faixa precisa ter pelo menos 4 °C de amplitude.'),
+    ).toBeOnTheScreen();
+    const save = screen.getByRole('button', { name: strings.onboarding.save });
+    expect(save.props.accessibilityState.disabled).toBe(true);
+
+    await user.press(save);
+    expect(useOnboarding.getState().habits).toEqual([]);
+  });
+
+  it('conforto: editar um hábito com override chega pré-preenchido', async () => {
+    useOnboarding.getState().beginManage({
+      id: 'beach',
+      name: 'Praia',
+      category: 'lazer',
+      intensity: 'leve',
+      outdoor: true,
+      days: [6],
+      schedule: { kind: 'flexible', durationMinutes: 120 },
+      comfortOverride: {
+        kind: 'custom',
+        idealTempRange: [27, 34],
+        maxHumidity: 85,
+        maxWind: 25,
+      },
+      enabled: true,
+      createdAt: '2026-07-01T00:00:00.000Z',
+    });
+    await renderWith(<HabitComfortStepScreen />);
+
+    expect((await screen.findByLabelText(strings.onboarding.comfortCustomize)).props.value).toBe(
+      true,
+    );
+    expect(screen.getByLabelText(strings.preferences.numeric.tempMinLabel).props.value).toBe('27');
+    expect(screen.getByLabelText(strings.preferences.numeric.tempMaxLabel).props.value).toBe('34');
+    expect(screen.getByLabelText(strings.preferences.humidityLabel).props.value).toBe('85');
   });
 
   it('review: remover tira o hábito da lista antes de concluir', async () => {

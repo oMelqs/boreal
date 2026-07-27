@@ -1,18 +1,16 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { ThermalPreset } from '@/domain/entities/preferences';
 import { Button } from '@/presentation/components/Button';
 import { StepHeader } from '@/presentation/components/StepHeader';
-import { ThermalPresetCard } from '@/presentation/components/ThermalPresetCard';
+import { ThermalPresetPicker } from '@/presentation/components/ThermalPresetPicker';
 import { usePreferencesForm } from '@/presentation/hooks/usePreferencesForm';
 import { strings } from '@/presentation/i18n/strings';
 import { useTheme } from '@/presentation/theme/useTheme';
 
 import { OnboardingShell } from '../onboarding/OnboardingShell';
 import { preferencesFlow } from './flow';
-
-const PRESETS: ThermalPreset[] = ['friorento', 'equilibrado', 'calorento'];
 
 type ThermalStepScreenProps = {
   /** Fora do onboarding (⚙️ da home): contagem e destinos próprios. */
@@ -25,7 +23,7 @@ type ThermalStepScreenProps = {
  */
 export function ThermalStepScreen({ standalone = false }: ThermalStepScreenProps) {
   const router = useRouter();
-  const { colors, typography, spacing, minTouchTarget } = useTheme();
+  const { colors, typography, spacing } = useTheme();
   const flow = preferencesFlow(standalone);
   const draft = usePreferencesForm((state) => state.draft);
   const selectPreset = usePreferencesForm((state) => state.selectPreset);
@@ -63,37 +61,14 @@ export function ThermalStepScreen({ standalone = false }: ThermalStepScreenProps
         </Text>
       </View>
 
-      <View style={{ gap: spacing.md }}>
-        {PRESETS.map((preset) => (
-          <ThermalPresetCard
-            key={preset}
-            onPress={() => choosePreset(preset)}
-            preset={preset}
-            selected={draft.kind === 'preset' && draft.preset === preset}
-          />
-        ))}
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={strings.preferences.customLink}
-        onPress={() => {
+      <ThermalPresetPicker
+        onCustom={() => {
           startCustom();
           router.push(flow.temperature);
         }}
-        style={[styles.link, { minHeight: minTouchTarget }]}
-      >
-        <Text style={[typography.label, { color: colors.accent }]}>
-          {strings.preferences.customLink}
-        </Text>
-      </Pressable>
+        onSelectPreset={choosePreset}
+        value={draft}
+      />
     </OnboardingShell>
   );
 }
-
-const styles = StyleSheet.create({
-  link: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

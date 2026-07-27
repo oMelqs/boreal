@@ -1,18 +1,19 @@
 import { create } from 'zustand';
 
 import type { ThermalPreset, UserPreferences } from '@/domain/entities/preferences';
-import { resolveComfortProfile } from '@/domain/usecases/resolveComfortProfile';
 import type { PreferencesValidationError } from '@/domain/usecases/validatePreferences';
 import { validatePreferences } from '@/domain/usecases/validatePreferences';
 
-/** Campos "achatados" do formulário — fáceis de ligar em sliders e time fields. */
-export type PreferencesDraft = {
-  kind: 'preset' | 'custom';
-  preset: ThermalPreset;
-  tempMin: number;
-  tempMax: number;
-  maxHumidity: number;
-  maxWind: number;
+import type { ComfortDraft } from './comfortDraft';
+import {
+  comfortToDraft,
+  customFromPreset,
+  draftToComfort,
+  EMPTY_COMFORT_DRAFT,
+} from './comfortDraft';
+
+/** O perfil de conforto (compartilhado com o hábito) mais a rotina de sono. */
+export type PreferencesDraft = ComfortDraft & {
   /** false → grava sem `sleep` (comportamento legado por luz do dia). */
   sleepEnabled: boolean;
   wakeTime: string;
@@ -21,12 +22,7 @@ export type PreferencesDraft = {
 
 /** Ponto de partida do formulário: equilibrado com rotina 07h–23h sugerida. */
 export const EMPTY_PREFERENCES_DRAFT: PreferencesDraft = {
-  kind: 'preset',
-  preset: 'equilibrado',
-  tempMin: 18,
-  tempMax: 26,
-  maxHumidity: 70,
-  maxWind: 20,
+  ...EMPTY_COMFORT_DRAFT,
   sleepEnabled: false,
   wakeTime: '07:00',
   sleepTime: '23:00',
@@ -43,34 +39,13 @@ export function preferencesToDraft(preferences: UserPreferences): PreferencesDra
         sleepTime: EMPTY_PREFERENCES_DRAFT.sleepTime,
       };
 
-  if (comfort.kind === 'preset') {
-    return { ...EMPTY_PREFERENCES_DRAFT, preset: comfort.preset, ...sleepFields };
-  }
-  return {
-    kind: 'custom',
-    preset: EMPTY_PREFERENCES_DRAFT.preset,
-    tempMin: comfort.idealTempRange[0],
-    tempMax: comfort.idealTempRange[1],
-    maxHumidity: comfort.maxHumidity,
-    maxWind: comfort.maxWind,
-    ...sleepFields,
-  };
+  return { ...comfortToDraft(comfort), ...sleepFields };
 }
 
 /** Campos do formulário → entity do domain (o que é persistido). */
 export function draftToPreferences(draft: PreferencesDraft): UserPreferences {
-  const comfort: UserPreferences['comfort'] =
-    draft.kind === 'preset'
-      ? { kind: 'preset', preset: draft.preset }
-      : {
-          kind: 'custom',
-          idealTempRange: [draft.tempMin, draft.tempMax],
-          maxHumidity: draft.maxHumidity,
-          maxWind: draft.maxWind,
-        };
-
   return {
-    comfort,
+    comfort: draftToComfort(draft),
     ...(draft.sleepEnabled
       ? { sleep: { wakeTime: draft.wakeTime, sleepTime: draft.sleepTime } }
       : {}),
@@ -114,24 +89,8 @@ export const usePreferencesForm = create<PreferencesFormState>((set) => ({
   selectPreset: (preset) =>
     set((state) => ({ draft: { ...state.draft, kind: 'preset', preset } })),
 
-  // Sair de um preset para o modo manual não deve zerar as respostas: os
-  // parâmetros daquele preset viram os valores iniciais dos sliders.
   startCustom: () =>
-    set((state) => {
-      const profile = resolveComfortProfile({
-        comfort: { kind: 'preset', preset: state.draft.preset },
-      });
-      return {
-        draft: {
-          ...state.draft,
-          kind: 'custom',
-          tempMin: profile.idealTempRange[0],
-          tempMax: profile.idealTempRange[1],
-          maxHumidity: profile.maxHumidity,
-          maxWind: profile.windToleranceKmh,
-        },
-      };
-    }),
+    set((state) => ({ draft: { ...state.draft, ...customFromPreset(state.draft) } })),
 
   reset: () => set({ draft: EMPTY_PREFERENCES_DRAFT, mode: 'onboarding' }),
 }));

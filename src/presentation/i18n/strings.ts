@@ -157,6 +157,10 @@ export const strings = {
     durationOption: (minutes: number) => (minutes >= 60 ? `${minutes / 60}h` : `${minutes}min`),
     durationOptionLong: (minutes: number) =>
       minutes >= 60 ? `${minutes / 60} hora${minutes > 60 ? 's' : ''}` : `${minutes} minutos`,
+    comfortTitle: 'Esse hábito tem um clima ideal diferente do seu padrão?',
+    comfortHint: 'Praia pede calor; treino pesado pede frio. Dá para mudar depois.',
+    comfortInherit: 'Usar minha preferência padrão',
+    comfortCustomize: 'Personalizar para este hábito',
     outfitToggleLabel: 'Sugerir o que vestir',
     outfitToggleHint: 'Desligue para hábitos que não pedem roupa, como um banho.',
     boundsLabel: 'Só num intervalo? (opcional)',
