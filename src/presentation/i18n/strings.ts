@@ -81,7 +81,8 @@ export const strings = {
     themeToDark: 'Mudar para o tema escuro',
     tomorrowBadge: 'amanhã',
     emptyTitle: 'Nenhum hábito por aqui',
-    emptyHint: 'Cadastre seus hábitos para receber sugestões de vestimenta e horário todos os dias.',
+    emptyHint:
+      'Cadastre seus hábitos para receber sugestões de vestimenta e horário todos os dias.',
     emptyCta: 'Cadastrar hábitos',
     searchLink: 'Buscar outra cidade',
     noCityTitle: 'Escolha sua cidade',
@@ -135,7 +136,8 @@ export const strings = {
     habitsTitle: 'Quais são seus hábitos?',
     habitsHint: 'Toque numa sugestão ou crie o seu.',
     addHabit: 'Adicionar hábito',
-    habitCount: (count: number) => (count === 1 ? '1 hábito adicionado' : `${count} hábitos adicionados`),
+    habitCount: (count: number) =>
+      count === 1 ? '1 hábito adicionado' : `${count} hábitos adicionados`,
     nameTitle: 'Como chama esse hábito?',
     namePlaceholder: 'Ex.: Passear com o Thor',
     nameLabel: 'Nome do hábito',
@@ -274,9 +276,13 @@ export const strings = {
     profileCardLabel: 'Perfil',
     awakeCardLabel: 'Acordado',
     /** "Calorento · 15–23 °C" / "Personalizado · 24–30 °C". */
-    profileSummary: (name: string, min: number, max: number) =>
-      `${name} · ${min}–${max} °C`,
+    profileSummary: (name: string, min: number, max: number) => `${name} · ${min}–${max} °C`,
     customName: 'Personalizado',
+    /** Selo do hábito com conforto próprio: "27–34 °C". */
+    tempRangeShort: (min: number, max: number) => `${min}–${max} °C`,
+    ownComfortLabel: (summary: string) => `Usa preferência própria: ${summary}`,
+    ownComfortEdit: (name: string, summary: string) =>
+      `Editar a preferência própria de ${name}: ${summary}`,
     awakeSummary: (wake: string, sleep: string) => `${wake} às ${sleep}`,
     awakeDaylight: 'Só com luz do dia',
     save: 'Salvar preferências',

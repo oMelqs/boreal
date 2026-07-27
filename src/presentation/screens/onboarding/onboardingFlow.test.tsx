@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import type { Container } from '@/di/container';
+import { EMPTY_COMFORT_DRAFT } from '@/presentation/hooks/comfortDraft';
 import { draftToHabit, EMPTY_DRAFT, useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { strings } from '@/presentation/i18n/strings';
 import { createFakeContainer, createProvidersWrapper } from '@/presentation/testing/providers';
@@ -39,9 +40,7 @@ const validDraft = {
 /** Liga o "personalizar para este hábito" e entra no modo manual. */
 async function openCustomComfort(user: ReturnType<typeof userEvent.setup>) {
   await enableCustomComfort();
-  await user.press(
-    await screen.findByRole('button', { name: strings.preferences.customLink }),
-  );
+  await user.press(await screen.findByRole('button', { name: strings.preferences.customLink }));
 }
 
 /** Liga o switch "personalizar" e espera o formulário aparecer. */
@@ -150,16 +149,12 @@ describe('onboarding', () => {
     useOnboarding.getState().startDraft({ ...validDraft, scheduleKind: 'flexible' });
     const { rerender } = await renderWith(<HabitScheduleScreen />);
 
-    expect(
-      screen.queryByLabelText(strings.onboarding.outfitToggleLabel),
-    ).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText(strings.onboarding.outfitToggleLabel)).not.toBeOnTheScreen();
 
     useOnboarding.getState().updateDraft({ scheduleKind: 'fixed' });
     await rerender(<HabitScheduleScreen />);
 
-    expect(
-      await screen.findByLabelText(strings.onboarding.outfitToggleLabel),
-    ).toBeOnTheScreen();
+    expect(await screen.findByLabelText(strings.onboarding.outfitToggleLabel)).toBeOnTheScreen();
   });
 
   it('horário: desligar a sugestão de roupa marca o hábito salvo', async () => {
@@ -184,8 +179,9 @@ describe('onboarding', () => {
     );
 
     expect(useOnboarding.getState().draft.suggestOutfit).toBe(false);
-    expect(draftToHabit(useOnboarding.getState().draft, 'shower', '2026-07-01T00:00:00.000Z'))
-      .toMatchObject({ skipOutfit: true });
+    expect(
+      draftToHabit(useOnboarding.getState().draft, 'shower', '2026-07-01T00:00:00.000Z'),
+    ).toMatchObject({ skipOutfit: true });
   });
 
   it('review: concluir persiste os hábitos, marca a flag e vai para a home', async () => {
@@ -201,9 +197,7 @@ describe('onboarding', () => {
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'));
     expect(saveHabit).toHaveBeenCalledTimes(2);
-    expect(savePreferences).toHaveBeenCalledWith(
-      expect.objectContaining({ onboardingDone: true }),
-    );
+    expect(savePreferences).toHaveBeenCalledWith(expect.objectContaining({ onboardingDone: true }));
     expect(useOnboarding.getState().habits).toEqual([]); // reset
   });
 
@@ -250,9 +244,7 @@ describe('onboarding', () => {
 
     await enableCustomComfort();
     const calorento = strings.preferences.preset.calorento;
-    await user.press(
-      screen.getByRole('button', { name: `${calorento.label}. ${calorento.hint}` }),
-    );
+    await user.press(screen.getByRole('button', { name: `${calorento.label}. ${calorento.hint}` }));
     await user.press(screen.getByRole('button', { name: strings.onboarding.save }));
 
     expect(useOnboarding.getState().habits[0]?.comfortOverride).toEqual({
@@ -286,9 +278,7 @@ describe('onboarding', () => {
     await openCustomComfort(user);
     await typeAndLeave(strings.preferences.numeric.tempMaxLabel, '20');
 
-    expect(
-      screen.getByText('A faixa precisa ter pelo menos 4 °C de amplitude.'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('A faixa precisa ter pelo menos 4 °C de amplitude.')).toBeOnTheScreen();
     const save = screen.getByRole('button', { name: strings.onboarding.save });
     expect(save.props.accessibilityState.disabled).toBe(true);
 
@@ -322,6 +312,25 @@ describe('onboarding', () => {
     expect(screen.getByLabelText(strings.preferences.numeric.tempMinLabel).props.value).toBe('27');
     expect(screen.getByLabelText(strings.preferences.numeric.tempMaxLabel).props.value).toBe('34');
     expect(screen.getByLabelText(strings.preferences.humidityLabel).props.value).toBe('85');
+  });
+
+  it('review: o selo do conforto próprio volta direto para a etapa 4/4', async () => {
+    useOnboarding.getState().startDraft({
+      ...validDraft,
+      days: [1],
+      comfort: { ...EMPTY_COMFORT_DRAFT, kind: 'preset', preset: 'friorento' },
+    });
+    useOnboarding.getState().commitDraft();
+    await renderWith(<ReviewScreen />);
+
+    await user.press(
+      await screen.findByRole('button', {
+        name: strings.preferences.ownComfortEdit('Passear com o cachorro', 'Friorento'),
+      }),
+    );
+
+    expect(useOnboarding.getState().draft.comfort).toMatchObject({ preset: 'friorento' });
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/habit/comfort');
   });
 
   it('review: remover tira o hábito da lista antes de concluir', async () => {

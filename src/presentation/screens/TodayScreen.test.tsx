@@ -5,6 +5,7 @@ import type { Habit } from '@/domain/entities/habit';
 import { DEFAULT_USER_PREFERENCES } from '@/domain/entities/preferences';
 import { buildHabit } from '@/domain/usecases/testing/buildHabit';
 import { atHour, buildDay } from '@/domain/usecases/testing/buildHourlyForecast';
+import { useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { useThemeStore } from '@/presentation/hooks/useThemeStore';
 import { strings } from '@/presentation/i18n/strings';
 import {
@@ -57,7 +58,11 @@ function coolingDay() {
 
 function readyContainer(habits: Habit[], overrides: Partial<Container> = {}) {
   return createFakeContainer({
-    getPreferences: async () => ({ defaultCity: joinville, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
+    getPreferences: async () => ({
+      defaultCity: joinville,
+      onboardingDone: true,
+      preferences: DEFAULT_USER_PREFERENCES,
+    }),
     getHabits: async () => habits,
     getForecast: async () => coolingDay(),
     ...overrides,
@@ -143,6 +148,32 @@ describe('TodayScreen', () => {
     expect(screen.getByText(strings.today.tomorrowBadge)).toBeOnTheScreen();
   });
 
+  it('hábito com conforto próprio mostra o selo e leva à etapa de conforto', async () => {
+    const beach = buildHabit({
+      ...dogWalk,
+      id: 'beach',
+      name: 'Praia',
+      comfortOverride: { kind: 'custom', idealTempRange: [27, 34], maxHumidity: 70, maxWind: 20 },
+    });
+    await renderToday(readyContainer([beach]));
+
+    await user.press(
+      await screen.findByRole('button', {
+        name: strings.preferences.ownComfortEdit('Praia', '27–34 °C'),
+      }),
+    );
+
+    expect(useOnboarding.getState().editingId).toBe('beach');
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/habit/comfort');
+  });
+
+  it('hábito sem override não ganha selo', async () => {
+    await renderToday(readyContainer([dogWalk]));
+
+    await screen.findByText('Passear com o cachorro');
+    expect(screen.queryByText(/🎯/)).not.toBeOnTheScreen();
+  });
+
   it('no-slot mostra a razão em tom neutro', async () => {
     const morningOnly = buildHabit({
       id: 'morning',
@@ -170,7 +201,11 @@ describe('TodayScreen', () => {
   it('sem cidade padrão: convite para escolher cidade', async () => {
     await renderToday(
       readyContainer([], {
-        getPreferences: async () => ({ defaultCity: null, onboardingDone: true, preferences: DEFAULT_USER_PREFERENCES }),
+        getPreferences: async () => ({
+          defaultCity: null,
+          onboardingDone: true,
+          preferences: DEFAULT_USER_PREFERENCES,
+        }),
       }),
     );
 

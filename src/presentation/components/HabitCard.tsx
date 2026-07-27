@@ -9,6 +9,7 @@ import { strings } from '@/presentation/i18n/strings';
 import { useTheme } from '@/presentation/theme/useTheme';
 
 import { AccessoryChips } from './AccessoryChips';
+import { ComfortBadge } from './ComfortBadge';
 import { HourlyTimeline } from './HourlyTimeline';
 import { OutfitBadge } from './OutfitBadge';
 import { ScoreBadge } from './ScoreBadge';
@@ -18,6 +19,8 @@ type HabitCardProps = {
   /** Horas restantes de hoje — timeline expansível dos cards de janela. */
   todayHours: HourlyForecast[];
   now: Date;
+  /** Atalho para a etapa de conforto; quem navega é a tela. */
+  onEditComfort?: () => void;
 };
 
 function TomorrowBadge() {
@@ -42,7 +45,7 @@ function TomorrowBadge() {
 }
 
 /** Card do painel Hoje (§8.2): vestimenta, janela recomendada ou no-slot. */
-export function HabitCard({ suggestion, todayHours, now }: HabitCardProps) {
+export function HabitCard({ suggestion, todayHours, now, onEditComfort }: HabitCardProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const { habit } = suggestion;
@@ -51,6 +54,12 @@ export function HabitCard({ suggestion, todayHours, now }: HabitCardProps) {
     habit.schedule.kind === 'fixed'
       ? `${habit.schedule.startTime}–${habit.schedule.endTime}`
       : null;
+
+  // Fora da variante `info`: hábito que dispensa roupa não usa clima, e o selo
+  // de preferência climática ali seria só ruído.
+  const comfortBadge = habit.comfortOverride ? (
+    <ComfortBadge comfort={habit.comfortOverride} habitName={habit.name} onEdit={onEditComfort} />
+  ) : null;
 
   const cardStyle = [
     styles.card,
@@ -65,9 +74,14 @@ export function HabitCard({ suggestion, todayHours, now }: HabitCardProps) {
 
   if (suggestion.kind === 'no-slot') {
     return (
-      <View accessible accessibilityLabel={`${habit.name}: ${suggestion.reason}`} style={cardStyle}>
-        <Text style={[typography.heading, { color: colors.textSecondary }]}>{habit.name}</Text>
-        <Text style={[typography.body, { color: colors.textSecondary }]}>{suggestion.reason}</Text>
+      <View style={cardStyle}>
+        <View accessible accessibilityLabel={`${habit.name}: ${suggestion.reason}`}>
+          <Text style={[typography.heading, { color: colors.textSecondary }]}>{habit.name}</Text>
+          <Text style={[typography.body, { color: colors.textSecondary }]}>
+            {suggestion.reason}
+          </Text>
+        </View>
+        {comfortBadge}
       </View>
     );
   }
@@ -102,6 +116,7 @@ export function HabitCard({ suggestion, todayHours, now }: HabitCardProps) {
           </View>
           {suggestion.when === 'amanha' ? <TomorrowBadge /> : null}
         </View>
+        {comfortBadge}
         <View style={[styles.clothingRow, { gap: spacing.lg }]}>
           <OutfitBadge outfit={clothing.outfit} />
           <Text style={[typography.body, styles.summary, { color: colors.textPrimary }]}>
@@ -131,6 +146,7 @@ export function HabitCard({ suggestion, todayHours, now }: HabitCardProps) {
         </View>
         {suggestion.when === 'amanha' ? <TomorrowBadge /> : null}
       </View>
+      {comfortBadge}
       <Text style={[typography.body, { color: colors.textSecondary }]}>
         {formatReasonsSentence(recommendation.reasons)}
       </Text>

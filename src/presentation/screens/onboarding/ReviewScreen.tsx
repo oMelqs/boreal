@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useContainer } from '@/di/ContainerProvider';
 import { Button } from '@/presentation/components/Button';
+import { ComfortBadge } from '@/presentation/components/ComfortBadge';
 import { StepHeader } from '@/presentation/components/StepHeader';
 import { useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { usePreferences } from '@/presentation/hooks/usePreferences';
@@ -111,6 +112,16 @@ export function ReviewScreen() {
           <Text style={[typography.caption, { color: colors.textSecondary }]}>
             {habitScheduleSummary(habit)}
           </Text>
+          {habit.comfortOverride ? (
+            <ComfortBadge
+              comfort={habit.comfortOverride}
+              habitName={habit.name}
+              onEdit={() => {
+                editHabit(habit.id);
+                router.push('/onboarding/habit/comfort');
+              }}
+            />
+          ) : null}
           <View style={[styles.actions, { gap: spacing.lg }]}>
             <Pressable
               accessibilityRole="button"

@@ -98,6 +98,26 @@ describe('HabitsScreen', () => {
     expect(mockPush).toHaveBeenCalledWith('/onboarding/habit/name');
   });
 
+  it('selo de conforto próprio abre o mini-fluxo direto na etapa de conforto', async () => {
+    const beach = buildHabit({
+      id: 'beach',
+      name: 'Praia',
+      comfortOverride: { kind: 'preset', preset: 'calorento' },
+    });
+    await renderHabits(createFakeContainer({ getHabits: async () => [beach] }));
+
+    await user.press(
+      await screen.findByRole('button', {
+        name: strings.preferences.ownComfortEdit('Praia', 'Calorento'),
+      }),
+    );
+
+    const state = useOnboarding.getState();
+    expect(state.mode).toBe('manage');
+    expect(state.draft.comfort).toMatchObject({ kind: 'preset', preset: 'calorento' });
+    expect(mockPush).toHaveBeenCalledWith('/onboarding/habit/comfort');
+  });
+
   it('adicionar abre o mini-fluxo em modo manage com draft vazio', async () => {
     await renderHabits(createFakeContainer({ getHabits: async () => [] }));
 

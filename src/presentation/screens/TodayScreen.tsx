@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { City } from '@/domain/entities/city';
+import type { Habit } from '@/domain/entities/habit';
 import { AuroraStrip } from '@/presentation/components/AuroraStrip';
 import { Button } from '@/presentation/components/Button';
 import { EmptyState } from '@/presentation/components/EmptyState';
@@ -13,6 +14,7 @@ import { ThemeToggle } from '@/presentation/components/ThemeToggle';
 import { WeatherCard } from '@/presentation/components/WeatherCard';
 import { formatLocalDate } from '@/presentation/format/format';
 import { useCityStore } from '@/presentation/hooks/useCityStore';
+import { useOnboarding } from '@/presentation/hooks/useOnboarding';
 import { useTodaySuggestions } from '@/presentation/hooks/useTodaySuggestions';
 import { strings } from '@/presentation/i18n/strings';
 import { useTheme } from '@/presentation/theme/useTheme';
@@ -27,12 +29,19 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
   const router = useRouter();
   const { colors, spacing, typography, minTouchTarget } = useTheme();
   const selectCity = useCityStore((state) => state.selectCity);
+  const beginManage = useOnboarding((state) => state.beginManage);
   const vm = useTodaySuggestions(nowOverride ? { now: nowOverride } : {});
 
   /** Abre a tela de detalhes: seleciona a cidade no store e navega. */
   function openCityDetail(city: City) {
     selectCity(city);
     router.push(`/city/${city.id}`);
+  }
+
+  /** Atalho do selo: abre o mini-fluxo direto na etapa de conforto. */
+  function editComfort(habit: Habit) {
+    beginManage(habit);
+    router.push('/onboarding/habit/comfort');
   }
 
   const refreshable = vm.status === 'ready' || vm.status === 'empty' ? vm : null;
@@ -74,10 +83,7 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
                 accessibilityRole="button"
                 accessibilityLabel={strings.preferences.openLabel}
                 onPress={() => router.push('/preferences')}
-                style={[
-                  styles.iconButton,
-                  { minHeight: minTouchTarget, minWidth: minTouchTarget },
-                ]}
+                style={[styles.iconButton, { minHeight: minTouchTarget, minWidth: minTouchTarget }]}
               >
                 <Text style={styles.icon}>⚙️</Text>
               </Pressable>
@@ -175,6 +181,7 @@ export function TodayScreen({ nowOverride }: TodayScreenProps) {
               <HabitCard
                 key={`${suggestion.habit.id}-${suggestion.kind}`}
                 now={vm.now}
+                onEditComfort={() => editComfort(suggestion.habit)}
                 suggestion={suggestion}
                 todayHours={vm.todayHours}
               />
