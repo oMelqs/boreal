@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Habit } from '@/domain/entities/habit';
 import { Button } from '@/presentation/components/Button';
+import { ComfortBadge } from '@/presentation/components/ComfortBadge';
 import { EmptyState } from '@/presentation/components/EmptyState';
 import { Skeleton } from '@/presentation/components/Skeleton';
 import { useHabits } from '@/presentation/hooks/useHabits';
@@ -23,6 +24,12 @@ function HabitRow({ habit }: { habit: Habit }) {
   function edit() {
     beginManage(habit);
     router.push('/onboarding/habit/name');
+  }
+
+  /** Selo do conforto próprio: entra pelo mesmo mini-fluxo, na etapa 4/4. */
+  function editComfort() {
+    beginManage(habit);
+    router.push('/onboarding/habit/comfort');
   }
 
   return (
@@ -52,6 +59,13 @@ function HabitRow({ habit }: { habit: Habit }) {
           <Text style={[typography.caption, { color: colors.textSecondary }]}>
             {habitScheduleSummary(habit)}
           </Text>
+          {habit.comfortOverride ? (
+            <ComfortBadge
+              comfort={habit.comfortOverride}
+              habitName={habit.name}
+              onEdit={editComfort}
+            />
+          ) : null}
         </View>
         <Switch
           accessibilityLabel={strings.habits.toggleLabel(habit.name)}
