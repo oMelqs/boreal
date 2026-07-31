@@ -7,7 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "boreal",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.boreal.app"
+    },
     "android": {
+      "package": "com.boreal.app",
       "adaptiveIcon": {
         "backgroundColor": "#0A1017",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -35,7 +39,41 @@
         {
           "locationWhenInUsePermission": "O Boreal usa sua localização para mostrar o clima de onde você está, sem precisar buscar a cidade."
         }
-      ]
+      ],
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "BorealNow",
+              "displayName": "Boreal",
+              "description": "O que vestir agora e o próximo hábito do dia.",
+              "ios": {
+                "supportedFamilies": ["systemSmall", "systemMedium"]
+              }
+            }
+          ]
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "BorealNow",
+              "label": "Boreal",
+              "description": "O que vestir agora e o próximo hábito do dia.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "previewImage": "./assets/images/icon.png",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "./plugins/withAndroidWorkVersion"
     ],
     "experiments": {
       "typedRoutes": true,

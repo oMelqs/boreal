@@ -10,6 +10,10 @@ module.exports = {
     '!src/**/*.test.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/testing/**',
+    // Widgets rodam fora do React Native (SwiftUI no iOS, imagem no Android):
+    // não montam em RNTL, então entrariam na média como código eternamente
+    // descoberto. A verificação deles é o checklist manual por dispositivo.
+    '!src/widgets/**',
   ],
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {
