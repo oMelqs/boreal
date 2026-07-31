@@ -1,4 +1,5 @@
 import type { Accessory, OutfitLevel } from './clothing';
+import type { ComfortScore } from './comfortScore';
 
 /**
  * Versão do formato gravado para o widget. Sobe quando um campo muda de
@@ -53,7 +54,8 @@ export type WidgetHabit = {
   timeRange: WidgetTimeRange;
 } & (
   | { kind: 'clothing'; outfit: WidgetOutfit }
-  | { kind: 'window'; score: number; reasons: string[]; caveat?: string }
+  /** `score` traz valor e rótulo: quem desenha o selo não reclassifica nada. */
+  | { kind: 'window'; score: ComfortScore; reasons: string[]; caveat?: string }
   | { kind: 'info' }
   | { kind: 'no-slot'; reason: string }
 );
