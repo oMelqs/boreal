@@ -1,16 +1,23 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { container } from '@/di/container';
 import { ContainerProvider } from '@/di/ContainerProvider';
 import { createQueryClient } from '@/presentation/queryClient';
 import { useTheme } from '@/presentation/theme/useTheme';
+import { publishWidgetSnapshot } from '@/widgets/publishWidgetSnapshot';
 
 export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
   const { colors, scheme } = useTheme();
+
+  // O widget iOS não tem layout padrão: sem um snapshot publicado ele aparece
+  // como erro na galeria. Na spike é um texto fixo; o payload real vem do PR 3.
+  useEffect(() => {
+    void publishWidgetSnapshot('Olá, Boreal');
+  }, []);
 
   return (
     <ContainerProvider container={container}>

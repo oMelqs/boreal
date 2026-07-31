@@ -1,3 +1,9 @@
+// O projeto roda com o React Compiler ligado (`experiments.reactCompiler`), que
+// memoiza componentes. A lib do widget Android renderiza a árvore chamando a
+// função direto, fora do React, e rejeita o componente transformado com
+// "Invalid Hook Call". A diretiva desliga o compiler só neste arquivo.
+'use no memo';
+
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
 type BorealNowWidgetProps = {
