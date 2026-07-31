@@ -7,7 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "boreal",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.boreal.app"
+    },
     "android": {
+      "package": "com.boreal.app",
       "adaptiveIcon": {
         "backgroundColor": "#0A1017",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
