@@ -72,7 +72,8 @@
             }
           ]
         }
-      ]
+      ],
+      "./plugins/withAndroidWorkVersion"
     ],
     "experiments": {
       "typedRoutes": true,
