@@ -287,6 +287,10 @@ export const strings = {
     awakeDaylight: 'Só com luz do dia',
     save: 'Salvar preferências',
   },
+  widget: {
+    /** Nada publicado ainda: o app precisa abrir uma vez (§11 do widget). */
+    empty: 'Abra o Boreal',
+  },
   errors: {
     network: 'Sem conexão com a internet. Verifique sua rede e tente de novo.',
     api: 'O serviço de clima está indisponível agora. Tente de novo em instantes.',

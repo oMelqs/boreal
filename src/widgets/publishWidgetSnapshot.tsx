@@ -1,29 +1,34 @@
 import { Platform } from 'react-native';
 import { requestWidgetUpdate } from 'react-native-android-widget';
 
+import type { WidgetSnapshot } from '@/domain/entities/widgetSnapshot';
 import { logger } from '@/data/logger';
+import { toWidgetPayload } from '@/presentation/widget/toWidgetPayload';
 
 import { BorealNowWidget } from './android/BorealNowWidget';
 import BorealNowIosWidget from './BorealNowWidget';
 
 /**
- * Publica o conteúdo do widget nas duas plataformas (§9.1 do SPECS-WIDGET). Na
- * spike é só um texto fixo; o payload real (`WidgetSnapshot`) entra no PR 3.
+ * Entrega o snapshot ao widget de cada plataforma (§9.1 do SPECS-WIDGET).
  *
  * iOS: o widget **não tem layout padrão** — sem nenhum snapshot publicado, a
- * galeria mostra "No layout found" em vez de um estado vazio nosso. O app
- * precisa publicar algo já no primeiro arranque. O import é estático de
- * propósito: o arquivo do widget vira um bundle isolado, e `await import()`
- * daqui derruba o app com "Requiring unknown module".
+ * galeria mostra "No layout found" em vez de um estado vazio nosso. O import
+ * é estático de propósito: o arquivo do widget vira um bundle isolado e
+ * `await import()` daqui derruba o app com "Requiring unknown module"; quem
+ * protege as outras plataformas é a guarda de `Platform`.
  *
- * Android: o sistema chama o task handler ao adicionar o widget, mas quem já
- * tem o widget na tela só vê o valor novo quando o app pede — daí o
+ * Android: o sistema desenha ao adicionar o widget e a cada `updatePeriodMillis`,
+ * mas quem já tem um na tela só vê valor novo quando o app pede — daí o
  * `requestWidgetUpdate`, que redesenha cada instância adicionada.
+ *
+ * Uma entrada só por enquanto; a timeline de 6 horas do iOS é o PR 4.
  */
-export async function publishWidgetSnapshot(headline: string): Promise<void> {
+export async function publishWidgetSnapshot(snapshot: WidgetSnapshot): Promise<void> {
+  const payload = toWidgetPayload(snapshot);
+
   try {
     if (Platform.OS === 'ios') {
-      BorealNowIosWidget.updateSnapshot({ headline });
+      BorealNowIosWidget.updateSnapshot({ payload });
       return;
     }
 
@@ -31,8 +36,8 @@ export async function publishWidgetSnapshot(headline: string): Promise<void> {
       await requestWidgetUpdate({
         widgetName: 'BorealNow',
         renderWidget: () => ({
-          light: <BorealNowWidget headline={headline} theme="light" />,
-          dark: <BorealNowWidget headline={headline} theme="dark" />,
+          light: <BorealNowWidget payload={payload} theme="light" />,
+          dark: <BorealNowWidget payload={payload} theme="dark" />,
         }),
       });
     }

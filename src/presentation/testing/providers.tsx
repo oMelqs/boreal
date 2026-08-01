@@ -32,6 +32,8 @@ export function createFakeContainer(overrides: Partial<Container> = {}): Contain
     // Sem GPS por padrão: os testes caem no fallback de cidade padrão.
     ensureLocationPermission: async () => 'unavailable',
     getCurrentPosition: async () => null,
+    publishWidgetSnapshot: async () => {},
+    readWidgetSnapshot: async () => null,
     ...overrides,
   };
 }
