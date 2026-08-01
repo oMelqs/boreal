@@ -290,6 +290,11 @@ export const strings = {
   widget: {
     /** Nada publicado ainda: o app precisa abrir uma vez (§11 do widget). */
     empty: 'Abra o Boreal',
+    /** Selo do hábito que só acontece amanhã. */
+    tomorrow: 'amanhã',
+    /** Cabeçalho da coluna de horas nos tamanhos maiores. */
+    nextHours: 'Próximas horas',
+    noHabit: 'Nenhum hábito para hoje',
   },
   errors: {
     network: 'Sem conexão com a internet. Verifique sua rede e tente de novo.',

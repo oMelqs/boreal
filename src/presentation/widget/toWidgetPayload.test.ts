@@ -1,7 +1,7 @@
 import type { WidgetSnapshot } from '@/domain/entities/widgetSnapshot';
 import { WIDGET_SCHEMA_VERSION } from '@/domain/entities/widgetSnapshot';
 
-import { toWidgetPayload } from './toWidgetPayload';
+import { toIosWidgetProps, toWidgetPayload } from './toWidgetPayload';
 
 function buildSnapshot(overrides: Partial<WidgetSnapshot> = {}): WidgetSnapshot {
   return {
@@ -120,5 +120,76 @@ describe('toWidgetPayload', () => {
 
   it('sem hábito no dia, o bloco vem nulo', () => {
     expect(toWidgetPayload(buildSnapshot()).habit).toBeNull();
+  });
+});
+
+describe('toIosWidgetProps', () => {
+  /**
+   * A ponte entrega os props direto ao módulo nativo: objeto aninhado ou
+   * `null` derruba a publicação com "Exception in HostFunction", e o widget
+   * fica preso no estado vazio sem erro na tela. Este teste é a cerca.
+   */
+  it('só atravessa string e array de string', () => {
+    const props = toIosWidgetProps(
+      toWidgetPayload(
+        buildSnapshot({
+          nextHabit: {
+            id: 'walk',
+            name: 'Caminhada',
+            when: 'amanha',
+            ownComfort: true,
+            timeRange: { kind: 'window', startHour: 14, endHour: 16 },
+            kind: 'window',
+            score: { value: 88, label: 'otimo' },
+            reasons: ['temperatura agradável (24 °C)'],
+          },
+        }),
+      ),
+    );
+
+    for (const [key, value] of Object.entries(props)) {
+      if (Array.isArray(value)) {
+        expect(value.every((item) => typeof item === 'string')).toBe(true);
+      } else {
+        expect(typeof value).toBe(`string`);
+      }
+      expect(value).not.toBeNull();
+      expect(key).not.toBe('');
+    }
+  });
+
+  it('condensa cada hora numa linha só', () => {
+    const props = toIosWidgetProps(toWidgetPayload(buildSnapshot()));
+
+    expect(props.hours).toEqual(['15h 🌤️ 23°', '16h 🌧️ 21° 60%']);
+  });
+
+  it('sem hábito, os campos do bloco vêm vazios em vez de nulos', () => {
+    const props = toIosWidgetProps(toWidgetPayload(buildSnapshot()));
+
+    expect(props.habitName).toBe('');
+    expect(props.habitBadges).toBe('');
+  });
+
+  it('marca conforto próprio e ocorrência de amanhã', () => {
+    const props = toIosWidgetProps(
+      toWidgetPayload(
+        buildSnapshot({
+          nextHabit: {
+            id: 'beach',
+            name: 'Praia',
+            when: 'amanha',
+            ownComfort: true,
+            timeRange: { kind: 'window', startHour: 14, endHour: 16 },
+            kind: 'window',
+            score: { value: 88, label: 'otimo' },
+            reasons: ['calor de 30 °C'],
+          },
+        }),
+      ),
+    );
+
+    expect(props.habitBadges).toBe('🎯 amanhã');
+    expect(props.habitTime).toBe('14h–16h');
   });
 });
