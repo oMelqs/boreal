@@ -28,7 +28,14 @@ export async function publishWidgetSnapshot(snapshot: WidgetSnapshot): Promise<v
 
   try {
     if (Platform.OS === 'ios') {
-      BorealNowIosWidget.updateSnapshot({ payload });
+      const hasOutfit = payload.outfitLabel !== '';
+      // Campos achatados: a ponte não aceita o payload aninhado (§9.1).
+      BorealNowIosWidget.updateSnapshot({
+        temp: payload.temp,
+        emoji: hasOutfit ? payload.outfitEmoji : payload.icon,
+        headline: hasOutfit ? payload.outfitLabel : payload.description,
+        footnote: payload.habit ? payload.habit.name : payload.cityName,
+      });
       return;
     }
 
