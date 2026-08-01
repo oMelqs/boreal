@@ -6,9 +6,12 @@
 
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
+import type { WidgetPayload } from '@/presentation/widget/toWidgetPayload';
+import { strings } from '@/presentation/i18n/strings';
+
 type BorealNowWidgetProps = {
-  /** Placeholder da spike; o payload real chega no PR 3. */
-  headline: string;
+  /** `null` enquanto o app nunca publicou nada (§11). */
+  payload: WidgetPayload | null;
   theme?: 'light' | 'dark';
 };
 
@@ -20,15 +23,16 @@ const COLORS = {
 } as const;
 
 /**
- * Widget Android (§4 do SPECS-WIDGET). A lib renderiza esta árvore como
+ * Widget Android (§6 do SPECS-WIDGET). A lib renderiza esta árvore como
  * imagem, então layout tolerante: nada colado na borda e sem texto que dependa
- * de refluxo.
+ * de refluxo. Tamanhos e layout definitivo entram no PR 5.
  *
  * `clickAction="OPEN_URI"` abre o app pelo scheme `boreal` — o mesmo caminho de
  * deep link que as telas já usam.
  */
-export function BorealNowWidget({ headline, theme = 'dark' }: BorealNowWidgetProps) {
+export function BorealNowWidget({ payload, theme = 'dark' }: BorealNowWidgetProps) {
   const colors = COLORS[theme];
+  const hasOutfit = payload !== null && payload.outfitLabel !== '';
 
   return (
     <FlexWidget
@@ -44,8 +48,27 @@ export function BorealNowWidget({ headline, theme = 'dark' }: BorealNowWidgetPro
         borderRadius: 16,
       }}
     >
-      <TextWidget text={headline} style={{ fontSize: 22, color: colors.textPrimary }} />
-      <TextWidget text="Boreal" style={{ fontSize: 12, color: colors.textSecondary }} />
+      {payload === null ? (
+        <TextWidget
+          text={strings.widget.empty}
+          style={{ fontSize: 16, color: colors.textPrimary }}
+        />
+      ) : (
+        <FlexWidget style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+          <TextWidget
+            text={`${hasOutfit ? payload.outfitEmoji : payload.icon} ${payload.temp}`}
+            style={{ fontSize: 28, color: colors.textPrimary }}
+          />
+          <TextWidget
+            text={hasOutfit ? payload.outfitLabel : payload.description}
+            style={{ fontSize: 14, color: colors.textPrimary }}
+          />
+          <TextWidget
+            text={payload.habit?.name ?? payload.cityName}
+            style={{ fontSize: 12, color: colors.textSecondary }}
+          />
+        </FlexWidget>
+      )}
     </FlexWidget>
   );
 }

@@ -11,10 +11,12 @@ import { createHabitsRepository } from '@/data/repositories/habitsRepositoryImpl
 import { createCityRepository } from '@/data/repositories/openMeteoCityRepository';
 import { createWeatherRepository } from '@/data/repositories/openMeteoWeatherRepository';
 import { createPreferencesRepository } from '@/data/repositories/preferencesRepositoryImpl';
+import { createWidgetRepository } from '@/data/repositories/widgetRepositoryImpl';
 import type { City } from '@/domain/entities/city';
 import type { Habit } from '@/domain/entities/habit';
 import type { HourlyForecast } from '@/domain/entities/hourlyForecast';
 import type { Preferences } from '@/domain/entities/preferences';
+import type { WidgetSnapshot } from '@/domain/entities/widgetSnapshot';
 import { getForecast } from '@/domain/usecases/getForecast';
 import { searchCity } from '@/domain/usecases/searchCity';
 
@@ -31,6 +33,10 @@ export type Container = {
   ensureLocationPermission(): Promise<LocationPermission>;
   /** Posição atual do device; `null` se indisponível/negada. */
   getCurrentPosition(): Promise<Coords | null>;
+  /** Grava o payload que o widget lê (§5.3 do widget). */
+  publishWidgetSnapshot(snapshot: WidgetSnapshot): Promise<void>;
+  /** Último payload publicado; `null` quando não há ou está corrompido. */
+  readWidgetSnapshot(): Promise<WidgetSnapshot | null>;
 };
 
 /**
@@ -51,6 +57,7 @@ export function createContainer(
   const weatherRepository = createWeatherRepository(client);
   const habitsRepository = createHabitsRepository(storage);
   const preferencesRepository = createPreferencesRepository(storage);
+  const widgetRepository = createWidgetRepository(storage);
 
   return {
     searchCity: (query) => searchCity(cityRepository, query),
@@ -62,6 +69,8 @@ export function createContainer(
     savePreferences: (preferences) => preferencesRepository.save(preferences),
     ensureLocationPermission: () => locationClient.ensurePermission(),
     getCurrentPosition: () => locationClient.getCurrentPosition(),
+    publishWidgetSnapshot: (snapshot) => widgetRepository.publish(snapshot),
+    readWidgetSnapshot: () => widgetRepository.read(),
   };
 }
 
