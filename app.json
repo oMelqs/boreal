@@ -49,7 +49,7 @@
               "displayName": "Boreal",
               "description": "O que vestir agora e o próximo hábito do dia.",
               "ios": {
-                "supportedFamilies": ["systemSmall", "systemMedium"]
+                "supportedFamilies": ["systemSmall", "systemMedium", "systemLarge"]
               }
             }
           ]

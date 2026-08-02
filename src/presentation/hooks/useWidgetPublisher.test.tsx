@@ -17,7 +17,11 @@ import { useWidgetPublisher } from './useWidgetPublisher';
 
 const walk = buildHabit({ id: 'walk', name: 'Caminhada', days: [0, 1, 2, 3, 4, 5, 6] });
 
-function Probe({ publishNative }: { publishNative: (snapshot: WidgetSnapshot) => Promise<void> }) {
+function Probe({
+  publishNative,
+}: {
+  publishNative: (timeline: WidgetSnapshot[]) => Promise<void>;
+}) {
   useWidgetPublisher({ publishNative });
   return <Text>publicador</Text>;
 }
@@ -40,14 +44,14 @@ function containerWith(habits: Habit[], published: WidgetSnapshot[]): Container 
 describe('useWidgetPublisher', () => {
   it('publica o snapshot quando cidade, hábitos e forecast chegam', async () => {
     const published: WidgetSnapshot[] = [];
-    const native: WidgetSnapshot[] = [];
+    const native: WidgetSnapshot[][] = [];
     const Wrapper = createProvidersWrapper(containerWith([walk], published));
 
     await render(
       <Wrapper>
         <Probe
-          publishNative={async (snapshot) => {
-            native.push(snapshot);
+          publishNative={async (timeline) => {
+            native.push(timeline);
           }}
         />
       </Wrapper>,
@@ -56,8 +60,9 @@ describe('useWidgetPublisher', () => {
     await waitFor(() => expect(published).toHaveLength(1));
     expect(published[0].cityName).toBe('Joinville');
     expect(published[0].habits.map((habit) => habit.id)).toEqual(['walk']);
-    // O storage alimenta o task handler do Android; o nativo desenha agora.
+    // O storage alimenta o task handler do Android; o nativo recebe a timeline.
     expect(native).toHaveLength(1);
+    expect(native[0]).toHaveLength(6);
   });
 
   it('não republica o mesmo conteúdo a cada render', async () => {
